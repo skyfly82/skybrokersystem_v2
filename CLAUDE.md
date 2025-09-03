@@ -40,7 +40,7 @@ The system is organized around these primary domains:
 
 ## Development Status
 
-⚠️ **Early Development Phase**: The project currently only contains documentation and basic structure. The actual Symfony application, Docker setup, and business logic are not yet implemented.
+✅ **Symfony 7.1 Environment Ready**: Basic Symfony 7.1 application is set up with webapp pack installed. Ready for domain implementation.
 
 ### Implementation Phases
 1. **Phase 1**: Foundation & Authentication (4-6 weeks) - *In Progress*
@@ -50,21 +50,46 @@ The system is organized around these primary domains:
 
 ## Development Commands
 
-Since the Symfony application is not yet set up, standard development commands are not available. Once implemented, expect:
+The Symfony 7.1 application is now set up and ready for development:
 
 ```bash
-# Symfony commands (when available)
-composer install
-php bin/console doctrine:migrations:migrate
-php bin/console server:run
+# Basic Symfony commands
+composer install                           # Install dependencies
+php bin/console about                      # Show environment info
+php bin/console debug:router               # List all routes
+php bin/console cache:clear                # Clear cache
+php bin/console doctrine:migrations:migrate # Run database migrations (when DB is set up)
 
-# Docker commands (when Docker setup is complete)
-docker-compose up -d
-docker-compose exec app composer install
+# Development server (use with web server)
+# Application runs at http://185.213.25.106/
 
-# Testing (when test suite is implemented)
-php bin/phpunit
+# Testing
+php bin/phpunit                            # Run test suite
+php bin/phpunit tests/                     # Run specific test directory
+
+# Code generation (MakerBundle)
+php bin/console make:controller            # Create new controller
+php bin/console make:entity                # Create new entity
+php bin/console make:form                  # Create form class
+php bin/console make:command               # Create console command
+
+# Database management
+php bin/console doctrine:database:create   # Create database
+php bin/console doctrine:schema:update --force # Update database schema
+php bin/console doctrine:fixtures:load     # Load test data
+
+# API & Debugging
+php bin/console debug:container            # Show services
+php bin/console debug:config               # Show configuration
+php bin/console messenger:consume async   # Process message queue
 ```
+
+## API Endpoints
+
+Currently available endpoints:
+- `GET /` - API welcome message and information
+- `GET /health` - Health check endpoint
+- `GET /_profiler` - Symfony Web Profiler (dev environment)
 
 ## Migration Context
 
@@ -86,3 +111,4 @@ This project replaces a Laravel-based system with these components:
 
 - Original Laravel system: [skyfly82/skybrokersystem](https://github.com/skyfly82/skybrokersystem)
 - Detailed implementation plan: `IMPLEMENTATION_PLAN.md`
+- no dcker will be used we will  work on http://185.213.25.106/ directly
