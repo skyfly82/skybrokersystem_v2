@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SkyBrokerSystem v2 - Logowanie</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .auth-container { 
+            background: white; 
+            border-radius: 15px; 
+            box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+            overflow: hidden;
+            max-width: 900px; 
+            width: 100%;
+            display: flex;
+            min-height: 500px;
+        }
+        .auth-sidebar {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            padding: 40px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        .auth-sidebar h1 {
+            font-size: 2.5em;
+            margin-bottom: 20px;
+        }
+        .auth-sidebar p {
+            font-size: 1.1em;
+            line-height: 1.6;
+            opacity: 0.9;
+        }
+        .auth-main {
+            flex: 1;
+            padding: 40px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        .auth-tabs {
+            display: flex;
+            margin-bottom: 30px;
+            border-bottom: 1px solid #eee;
+        }
+        .tab-button {
+            flex: 1;
+            padding: 15px;
+            border: none;
+            background: none;
+            cursor: pointer;
+            font-size: 1.1em;
+            color: #666;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s ease;
+        }
+        .tab-button.active {
+            color: #667eea;
+            border-bottom-color: #667eea;
+        }
+        .auth-form {
+            display: none;
+        }
+        .auth-form.active {
+            display: block;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 500;
+        }
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e1e1e1;
+            border-radius: 8px;
+            font-size: 1em;
+            transition: border-color 0.3s ease;
+        }
+        .form-group input:focus, .form-group select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        .btn {
+            width: 100%;
+            padding: 15px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 15px;
+        }
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+        .btn-primary:hover {
+            background: #5a6fd8;
+            transform: translateY(-1px);
+        }
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+        .alert {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+        }
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .alert-danger {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .loading {
+            display: none;
+            text-align: center;
+            color: #667eea;
+        }
+        .user-type-selector {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .user-type-card {
+            flex: 1;
+            padding: 15px;
+            border: 2px solid #e1e1e1;
+            border-radius: 8px;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+        .user-type-card.selected {
+            border-color: #667eea;
+            background: #f8f9ff;
+        }
+        @media (max-width: 768px) {
+            .auth-container {
+                flex-direction: column;
+                max-width: 400px;
+            }
+            .auth-sidebar {
+                padding: 20px;
+                text-align: center;
+            }
+            .auth-sidebar h1 {
+                font-size: 1.8em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="auth-container">
+        <div class="auth-sidebar">
+            <h1>SkyBrokerSystem v2</h1>
+            <p>Nowoczesna platforma brokerska dla firm kurierskich. Zarządzaj przesyłkami, klientami i współpracuj z kurierami w jednym miejscu.</p>
+        </div>
+        
+        <div class="auth-main">
+            <div class="auth-tabs">
+                <button class="tab-button active" onclick="switchTab('login')">Logowanie</button>
+                <button class="tab-button" onclick="switchTab('register')">Rejestracja</button>
+            </div>
+
+            <div class="alert alert-success" id="successAlert"></div>
+            <div class="alert alert-danger" id="errorAlert"></div>
+            <div class="loading" id="loading">Przetwarzanie...</div>
+
+            <!-- Login Form -->
+            <form class="auth-form active" id="loginForm">
+                <div class="user-type-selector">
+                    <div class="user-type-card selected" onclick="selectUserType('customer', 'login')" id="loginCustomerType">
+                        <strong>Klient</strong><br>
+                        <small>Firma/Osoba prywatna</small>
+                    </div>
+                    <div class="user-type-card" onclick="selectUserType('system', 'login')" id="loginSystemType">
+                        <strong>Administrator</strong><br>
+                        <small>Panel administracyjny</small>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="loginEmail">Adres email</label>
+                    <input type="email" id="loginEmail" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="loginPassword">Hasło</label>
+                    <input type="password" id="loginPassword" required>
+                </div>
+                
+                <button type="submit" class="btn btn-primary">Zaloguj się</button>
+                <button type="button" class="btn btn-secondary" onclick="goHome()">Powrót do strony głównej</button>
+            </form>
+
+            <!-- Register Form -->
+            <form class="auth-form" id="registerForm">
+                <div class="form-group">
+                    <label for="registerCustomerType">Typ klienta</label>
+                    <select id="registerCustomerType" required>
+                        <option value="">Wybierz typ klienta</option>
+                        <option value="company">Firma</option>
+                        <option value="individual">Osoba prywatna</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="registerEmail">Adres email</label>
+                    <input type="email" id="registerEmail" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="registerPassword">Hasło</label>
+                    <input type="password" id="registerPassword" required minlength="6">
+                </div>
+
+                <div class="form-group">
+                    <label for="registerFirstName">Imię</label>
+                    <input type="text" id="registerFirstName" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="registerLastName">Nazwisko</label>
+                    <input type="text" id="registerLastName" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="registerCompanyName">Nazwa firmy</label>
+                    <input type="text" id="registerCompanyName" placeholder="Opcjonalne dla osób prywatnych">
+                </div>
+
+                <div class="form-group">
+                    <label for="registerPhone">Telefon</label>
+                    <input type="tel" id="registerPhone" required>
+                </div>
+                
+                <button type="submit" class="btn btn-primary">Zarejestruj się</button>
+                <button type="button" class="btn btn-secondary" onclick="goHome()">Powrót do strony głównej</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = '/v2/api/v1';
+        let currentUserType = 'customer';
+
+        function switchTab(tab) {
+            // Update tab buttons
+            document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            // Update forms
+            document.querySelectorAll('.auth-form').forEach(form => form.classList.remove('active'));
+            document.getElementById(tab + 'Form').classList.add('active');
+            
+            // Clear alerts
+            hideAlerts();
+        }
+
+        function selectUserType(type, context) {
+            currentUserType = type;
+            document.querySelectorAll(`#${context}CustomerType, #${context}SystemType`)
+                .forEach(card => card.classList.remove('selected'));
+            document.getElementById(`${context}${type.charAt(0).toUpperCase() + type.slice(1)}Type`)
+                .classList.add('selected');
+        }
+
+        function showAlert(message, type = 'danger') {
+            hideAlerts();
+            const alertId = type === 'success' ? 'successAlert' : 'errorAlert';
+            const alertEl = document.getElementById(alertId);
+            alertEl.textContent = message;
+            alertEl.style.display = 'block';
+            
+            // Auto hide after 5 seconds
+            setTimeout(() => {
+                alertEl.style.display = 'none';
+            }, 5000);
+        }
+
+        function hideAlerts() {
+            document.getElementById('successAlert').style.display = 'none';
+            document.getElementById('errorAlert').style.display = 'none';
+        }
+
+        function showLoading(show = true) {
+            document.getElementById('loading').style.display = show ? 'block' : 'none';
+            // Disable all buttons
+            document.querySelectorAll('.btn').forEach(btn => btn.disabled = show);
+        }
+
+        function goHome() {
+            window.location.href = '/v2/web';
+        }
+
+        function goToDashboard(userType) {
+            window.location.href = `/v2/dashboard?type=${userType}`;
+        }
+
+        // Login Form Handler
+        document.getElementById('loginForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+            
+            if (!email || !password) {
+                showAlert('Proszę wypełnić wszystkie pola');
+                return;
+            }
+
+            showLoading(true);
+            hideAlerts();
+
+            try {
+                const endpoint = currentUserType === 'customer' ? 
+                    `${API_BASE}/customer/login` : 
+                    `${API_BASE}/system/login`;
+
+                console.log('Sending login request to:', endpoint);
+
+                const response = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        email: email,
+                        password: password
+                    })
+                });
+
+                console.log('Response status:', response.status);
+                console.log('Response headers:', response.headers.get('content-type'));
+                
+                // Check if response is JSON
+                const contentType = response.headers.get('content-type');
+                if (!contentType || !contentType.includes('application/json')) {
+                    const textResponse = await response.text();
+                    console.error('Expected JSON but got:', textResponse.substring(0, 200));
+                    throw new Error('Serwer zwrócił nieprawidłową odpowiedź (oczekiwano JSON)');
+                }
+
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    // Save token to localStorage
+                    localStorage.setItem('jwt_token', data.token);
+                    localStorage.setItem('user_type', currentUserType);
+                    localStorage.setItem('user_data', JSON.stringify(data.user));
+                    
+                    showAlert(`Zalogowano pomyślnie! Witaj ${data.user.fullName}`, 'success');
+                    
+                    // Redirect to dashboard after 2 seconds
+                    setTimeout(() => {
+                        goToDashboard(currentUserType);
+                    }, 2000);
+                } else {
+                    showAlert(data.message || 'Błąd logowania. Sprawdź dane logowania.');
+                }
+            } catch (error) {
+                showAlert('Błąd połączenia z serwerem: ' + error.message);
+            } finally {
+                showLoading(false);
+            }
+        });
+
+        // Register Form Handler
+        document.getElementById('registerForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const formData = {
+                email: document.getElementById('registerEmail').value,
+                password: document.getElementById('registerPassword').value,
+                firstName: document.getElementById('registerFirstName').value,
+                lastName: document.getElementById('registerLastName').value,
+                phone: document.getElementById('registerPhone').value,
+                customerType: document.getElementById('registerCustomerType').value,
+                companyName: document.getElementById('registerCompanyName').value || null
+            };
+
+            // Validation
+            if (!formData.email || !formData.password || !formData.firstName || 
+                !formData.lastName || !formData.phone || !formData.customerType) {
+                showAlert('Proszę wypełnić wszystkie wymagane pola');
+                return;
+            }
+
+            if (formData.customerType === 'company' && !formData.companyName) {
+                showAlert('Nazwa firmy jest wymagana dla kont firmowych');
+                return;
+            }
+
+            showLoading(true);
+            hideAlerts();
+
+            try {
+                const response = await fetch(`${API_BASE}/registration/register`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(formData)
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    showAlert(`Rejestracja zakończona pomyślnie! Możesz się teraz zalogować.`, 'success');
+                    
+                    // Clear form and switch to login
+                    document.getElementById('registerForm').reset();
+                    setTimeout(() => {
+                        switchTab('login');
+                        document.getElementById('loginEmail').value = formData.email;
+                    }, 2000);
+                } else {
+                    showAlert(data.message || 'Błąd rejestracji. Spróbuj ponownie.');
+                }
+            } catch (error) {
+                showAlert('Błąd połączenia z serwerem: ' + error.message);
+            } finally {
+                showLoading(false);
+            }
+        });
+
+        // Check if user is already logged in
+        window.addEventListener('load', function() {
+            const token = localStorage.getItem('jwt_token');
+            const userType = localStorage.getItem('user_type');
+            
+            if (token && userType) {
+                showAlert('Jesteś już zalogowany. Przekierowywanie...', 'success');
+                setTimeout(() => {
+                    goToDashboard(userType);
+                }, 1500);
+            }
+        });
+    </script>
+</body>
+</html>

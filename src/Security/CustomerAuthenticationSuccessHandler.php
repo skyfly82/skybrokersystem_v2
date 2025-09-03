@@ -38,7 +38,7 @@ class CustomerAuthenticationSuccessHandler implements AuthenticationSuccessHandl
                 'id' => $user->getId(),
                 'email' => $user->getEmail(),
                 'fullName' => $user->getFullName(),
-                'companyRole' => $user->getCompanyRole(),
+                'companyRole' => $user->getCustomerRole(),
                 'status' => $user->getStatus()
             ];
             

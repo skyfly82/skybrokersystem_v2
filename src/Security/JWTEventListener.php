@@ -41,7 +41,7 @@ class JWTEventListener
         if ($user instanceof CustomerUser) {
             $payload['user_type'] = 'customer';
             $payload['customer_id'] = $user->getCustomer()?->getId();
-            $payload['company_role'] = $user->getCompanyRole();
+            $payload['company_role'] = $user->getCustomerRole();
             $payload['status'] = $user->getStatus();
             
             if ($user->getCustomer()) {
@@ -50,7 +50,8 @@ class JWTEventListener
             }
         } elseif ($user instanceof SystemUser) {
             $payload['user_type'] = 'system';
-            $payload['role'] = $user->getRole();
+            $payload['department'] = $user->getDepartment();
+            $payload['position'] = $user->getPosition();
             $payload['status'] = $user->getStatus();
         }
 

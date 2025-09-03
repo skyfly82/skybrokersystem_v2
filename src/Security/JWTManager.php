@@ -41,11 +41,12 @@ class JWTManager
         if ($user instanceof CustomerUser) {
             $payload['user_type'] = 'customer';
             $payload['customer_id'] = $user->getCustomer()?->getId();
-            $payload['company_role'] = $user->getCompanyRole();
+            $payload['company_role'] = $user->getCustomerRole();
             $payload['status'] = $user->getStatus();
         } elseif ($user instanceof SystemUser) {
             $payload['user_type'] = 'system';
-            $payload['role'] = $user->getRole();
+            $payload['department'] = $user->getDepartment();
+            $payload['position'] = $user->getPosition();
             $payload['status'] = $user->getStatus();
         }
 
@@ -88,7 +89,7 @@ class JWTManager
         if ($payload['user_type'] === 'customer') {
             return isset($payload['company_role'], $payload['status']);
         } elseif ($payload['user_type'] === 'system') {
-            return isset($payload['role'], $payload['status']);
+            return isset($payload['department'], $payload['status']);
         }
 
         return false;

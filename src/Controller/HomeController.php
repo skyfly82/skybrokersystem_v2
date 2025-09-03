@@ -85,4 +85,16 @@ class HomeController extends AbstractController
     {
         return $this->render('home.html.twig');
     }
+
+    #[Route('/auth', name: 'app_auth', methods: ['GET'])]
+    public function auth(): Response
+    {
+        return $this->render('auth.html.twig');
+    }
+
+    #[Route('/dashboard', name: 'app_dashboard', methods: ['GET'])]
+    public function dashboard(): Response
+    {
+        return $this->render('dashboard.html.twig');
+    }
 }
