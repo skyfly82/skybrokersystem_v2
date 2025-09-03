@@ -19,14 +19,4 @@ class HealthController extends AbstractController
         ]);
     }
 
-    #[Route('/', name: 'app_home', methods: ['GET'])]
-    public function home(): JsonResponse
-    {
-        return $this->json([
-            'message' => 'Welcome to SkyBrokerSystem v2 API',
-            'version' => '2.0.0-dev',
-            'docs' => '/api/docs',
-            'health' => '/health'
-        ]);
-    }
 }

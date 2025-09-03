@@ -60,8 +60,8 @@ php bin/console debug:router               # List all routes
 php bin/console cache:clear                # Clear cache
 php bin/console doctrine:migrations:migrate # Run database migrations (when DB is set up)
 
-# Development server (use with web server)
-# Application runs at http://185.213.25.106/
+# Development server
+# Application runs at http://185.213.25.106/v2/
 
 # Testing
 php bin/phpunit                            # Run test suite
@@ -87,9 +87,9 @@ php bin/console messenger:consume async   # Process message queue
 ## API Endpoints
 
 Currently available endpoints:
-- `GET /` - API welcome message and information
-- `GET /health` - Health check endpoint
-- `GET /_profiler` - Symfony Web Profiler (dev environment)
+- `GET http://185.213.25.106/v2/` - API welcome message and information
+- `GET http://185.213.25.106/v2/health` - Health check endpoint
+- `GET http://185.213.25.106/v2/_profiler` - Symfony Web Profiler (dev environment)
 
 ## Migration Context
 

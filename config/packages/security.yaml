@@ -2,28 +2,84 @@ security:
     # https://symfony.com/doc/current/security.html#registering-the-user-hashing-passwords
     password_hashers:
         Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface: 'auto'
+        App\Entity\CustomerUser: 'auto'
+        App\Entity\SystemUser: 'auto'
+    
     # https://symfony.com/doc/current/security.html#loading-the-user-the-user-provider
     providers:
-        users_in_memory: { memory: null }
+        customer_users:
+            entity:
+                class: App\Entity\CustomerUser
+                property: email
+        system_users:
+            entity:
+                class: App\Entity\SystemUser
+                property: email
+    
     firewalls:
         dev:
             pattern: ^/(_(profiler|wdt)|css|images|js)/
             security: false
+        
+        # Customer API endpoints
+        customer_api:
+            pattern: ^/api/v1/customer
+            stateless: true
+            provider: customer_users
+            json_login:
+                check_path: /api/v1/customer/login
+                username_path: email
+                password_path: password
+                success_handler: App\Security\CustomerAuthenticationSuccessHandler
+                failure_handler: App\Security\AuthenticationFailureHandler
+            jwt: true
+        
+        # System/Admin API endpoints  
+        system_api:
+            pattern: ^/api/v1/system
+            stateless: true
+            provider: system_users
+            json_login:
+                check_path: /api/v1/system/login
+                username_path: email
+                password_path: password
+                success_handler: App\Security\SystemAuthenticationSuccessHandler
+                failure_handler: App\Security\AuthenticationFailureHandler
+            jwt: true
+        
+        # Public API endpoints (registration, etc.)
+        public_api:
+            pattern: ^/api/v1
+            stateless: true
+            security: false
+        
+        # Default firewall for web interface
         main:
             lazy: true
-            provider: users_in_memory
-
-            # activate different ways to authenticate
-            # https://symfony.com/doc/current/security.html#the-firewall
-
-            # https://symfony.com/doc/current/security/impersonating_user.html
-            # switch_user: true
+            provider: customer_users
+            form_login:
+                login_path: login
+                check_path: login
+            logout:
+                path: logout
 
     # Easy way to control access for large sections of your site
     # Note: Only the *first* access control that matches will be used
     access_control:
-        # - { path: ^/admin, roles: ROLE_ADMIN }
-        # - { path: ^/profile, roles: ROLE_USER }
+        # Customer API routes
+        - { path: ^/api/v1/customer/login, roles: PUBLIC_ACCESS }
+        - { path: ^/api/v1/customer, roles: ROLE_CUSTOMER_USER }
+        
+        # System API routes
+        - { path: ^/api/v1/system/login, roles: PUBLIC_ACCESS }
+        - { path: ^/api/v1/system, roles: ROLE_SYSTEM_USER }
+        
+        # Admin routes
+        - { path: ^/admin, roles: ROLE_ADMIN }
+        
+        # Public access
+        - { path: ^/api/v1/registration, roles: PUBLIC_ACCESS }
+        - { path: ^/, roles: PUBLIC_ACCESS }
 
 when@test:
     security:

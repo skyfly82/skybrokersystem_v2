@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SkyBrokerSystem v2 API</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333; 
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .container { 
+            background: white; 
+            padding: 40px; 
+            border-radius: 15px; 
+            box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+            max-width: 800px; 
+            width: 100%;
+        }
+        h1 { 
+            color: #667eea; 
+            margin-bottom: 10px; 
+            font-size: 2.5em;
+            text-align: center;
+        }
+        .subtitle { 
+            color: #666; 
+            margin-bottom: 30px; 
+            text-align: center;
+            font-size: 1.2em;
+        }
+        .status { 
+            background: #e8f5e8; 
+            color: #2d6a2d; 
+            padding: 15px; 
+            border-radius: 8px; 
+            margin-bottom: 30px;
+            border-left: 4px solid #4caf50;
+        }
+        .links { 
+            display: grid; 
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); 
+            gap: 15px; 
+            margin-bottom: 30px;
+        }
+        .link { 
+            background: #f8f9fa; 
+            padding: 20px; 
+            border-radius: 8px; 
+            text-decoration: none; 
+            color: #333; 
+            border: 2px solid transparent;
+            transition: all 0.3s ease;
+            text-align: center;
+        }
+        .link:hover { 
+            border-color: #667eea; 
+            background: #667eea; 
+            color: white; 
+            transform: translateY(-2px);
+        }
+        .features { 
+            background: #f8f9fa; 
+            padding: 20px; 
+            border-radius: 8px; 
+            margin-top: 20px;
+        }
+        .features h3 { 
+            color: #667eea; 
+            margin-bottom: 15px; 
+        }
+        .features ul { 
+            list-style: none; 
+        }
+        .features li { 
+            padding: 8px 0; 
+            border-bottom: 1px solid #eee;
+        }
+        .features li:before { 
+            content: "✓"; 
+            color: #4caf50; 
+            font-weight: bold; 
+            margin-right: 10px; 
+        }
+        .version { 
+            text-align: center; 
+            margin-top: 30px; 
+            color: #666; 
+            font-size: 0.9em;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>SkyBrokerSystem v2</h1>
+        <p class="subtitle">Modern Courier Brokerage Platform API</p>
+        
+        <div class="status">
+            <strong>Status:</strong> Development Phase | 
+            <strong>Version:</strong> 2.0.0-dev | 
+            <strong>Framework:</strong> Symfony 7.x
+        </div>
+
+        <div class="links">
+            <a href="/v2/health" class="link">
+                <strong>Health Check</strong><br>
+                <small>System status</small>
+            </a>
+            <a href="/v2/" class="link">
+                <strong>API Info</strong><br>
+                <small>JSON endpoints</small>
+            </a>
+            <a href="/v2/_profiler" class="link">
+                <strong>Profiler</strong><br>
+                <small>Debug tools</small>
+            </a>
+            <a href="/v2/api/docs" class="link">
+                <strong>API Docs</strong><br>
+                <small>Documentation</small>
+            </a>
+        </div>
+
+        <div class="features">
+            <h3>Zaimplementowane Funkcje:</h3>
+            <ul>
+                <li>Wielopoziomowe uwierzytelnianie (Customer + System)</li>
+                <li>Zabezpieczenia JWT z tokenami 1-godzinnymi</li>
+                <li>System zaproszeń dla użytkowników firmowych</li>
+                <li>Wsparcie dla wielu firm klientów</li>
+                <li>Logowanie bezpieczeństwa i aktywności</li>
+                <li>Architektura API-First z OpenAPI</li>
+            </ul>
+        </div>
+
+        <div class="features">
+            <h3>Dostępne Endpointy:</h3>
+            <ul>
+                <li><strong>POST</strong> /api/v1/customer/login - Logowanie klienta</li>
+                <li><strong>POST</strong> /api/v1/system/login - Logowanie systemowe</li>
+                <li><strong>POST</strong> /api/v1/registration/register - Rejestracja</li>
+                <li><strong>GET</strong> /api/v1/customer/profile - Profil klienta</li>
+                <li><strong>GET</strong> /api/v1/customer/company-users - Użytkownicy firmy</li>
+                <li><strong>POST</strong> /api/v1/customer/invitations/send - Wyślij zaproszenie</li>
+            </ul>
+        </div>
+
+        <div class="version">
+            Migracja z Laravel SkyBrokerSystem v1 | Faza 1: Uwierzytelnianie ✓
+        </div>
+    </div>
+</body>
+</html>
