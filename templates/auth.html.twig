@@ -292,7 +292,7 @@
     </div>
 
     <script>
-        const API_BASE = '/v2/api/v1';
+        const API_BASE = '/api/v1';
         const EU_COUNTRIES = [
             {code:'PL',name:'Polska'}, {code:'DE',name:'Niemcy'}, {code:'FR',name:'Francja'}, {code:'IT',name:'Włochy'}, {code:'ES',name:'Hiszpania'},
             {code:'PT',name:'Portugalia'},{code:'NL',name:'Holandia'},{code:'BE',name:'Belgia'},{code:'LU',name:'Luksemburg'},{code:'AT',name:'Austria'},
@@ -387,11 +387,11 @@
         }
 
         function goHome() {
-            window.location.href = '/v2/web';
+            window.location.href = '/web';
         }
 
         function goToDashboard(userType) {
-            window.location.href = `/v2/dashboard?type=${userType}`;
+            window.location.href = `/dashboard?type=${userType}`;
         }
 
         // Login Form Handler

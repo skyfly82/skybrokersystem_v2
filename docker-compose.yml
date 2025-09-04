@@ -1,0 +1,221 @@
+version: '3.8'
+
+services:
+  # Aplikacja Symfony 7.3
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: skybroker_app
+    restart: unless-stopped
+    working_dir: /var/www
+    volumes:
+      - ./:/var/www
+      - ./docker/php/php.ini:/usr/local/etc/php/conf.d/99-custom.ini
+      - ./docker/php/php-fpm.conf:/usr/local/etc/php-fpm.d/www.conf
+      - ./docker/nginx/default.conf:/etc/nginx/http.d/default.conf
+      - app_cache:/var/www/var/cache
+      - app_logs:/var/www/var/log
+    ports:
+      - "8080:80"
+    environment:
+      - APP_ENV=${APP_ENV:-dev}
+      - APP_SECRET=${APP_SECRET:-e22cfc3ada37a21e653e873f4a595872}
+      - DATABASE_URL=mysql://root:${MYSQL_ROOT_PASSWORD:-root}@database:3306/${MYSQL_DATABASE:-skybrokersystem}?serverVersion=8.0.32&charset=utf8mb4
+      - REDIS_URL=redis://redis:6379
+      - MAILER_DSN=${MAILER_DSN:-smtp://mailhog:1025}
+      - MESSENGER_TRANSPORT_DSN=redis://redis:6379/messages
+      - JWT_SECRET_KEY=%kernel.project_dir%/config/jwt/private.pem
+      - JWT_PUBLIC_KEY=%kernel.project_dir%/config/jwt/public.pem
+      - JWT_PASSPHRASE=${JWT_PASSPHRASE:-c0ffa907c75b325009c5ba4cdcb11550dc09fb8bddeb4783fccb76e7b8de5ad1}
+      # Symfony 7.3 specific optimizations
+      - PHP_OPCACHE_ENABLE=1
+      - PHP_OPCACHE_REVALIDATE_FREQ=0
+      - PHP_REALPATH_CACHE_SIZE=4096K
+      - PHP_REALPATH_CACHE_TTL=600
+    depends_on:
+      database:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - skybroker
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/health"]
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Baza danych MySQL 8.0 (zoptymalizowana)
+  database:
+    image: mysql:8.0
+    container_name: skybroker_db
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-skybrokersystem}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
+      MYSQL_USER: ${MYSQL_USER:-skybroker}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-Krasnoludek1!}
+    ports:
+      - "3307:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./docker/mysql/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./docker/mysql/my.cnf:/etc/mysql/conf.d/custom.cnf
+    command: --default-authentication-plugin=mysql_native_password --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    networks:
+      - skybroker
+
+  # PostgreSQL (alternatywa dla przyszłej migracji)
+  postgres:
+    image: postgres:16-alpine
+    container_name: skybroker_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-skybrokersystem}
+      POSTGRES_USER: ${POSTGRES_USER:-skybroker}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-Krasnoludek1!}
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -d ${POSTGRES_DB:-skybrokersystem} -U ${POSTGRES_USER:-skybroker}"]
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+    networks:
+      - skybroker
+
+  # Redis (zoptymalizowany dla Symfony 7.3)
+  redis:
+    image: redis:7-alpine
+    container_name: skybroker_redis
+    restart: unless-stopped
+    ports:
+      - "6380:6379"
+    volumes:
+      - redis_data:/data
+      - ./docker/redis/redis.conf:/usr/local/etc/redis/redis.conf
+    command: redis-server /usr/local/etc/redis/redis.conf --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      timeout: 3s
+      retries: 5
+    networks:
+      - skybroker
+
+  # MailHog (testowanie emaili)
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: skybroker_mailhog
+    restart: unless-stopped
+    ports:
+      - "1025:1025"  # SMTP
+      - "8025:8025"  # Web UI
+    networks:
+      - skybroker
+
+  # Nginx (reverse proxy)
+  nginx:
+    image: nginx:alpine
+    container_name: skybroker_nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ./docker/nginx/sites:/etc/nginx/conf.d
+      - ./docker/ssl:/etc/ssl/certs
+      - ./public:/var/www/public:ro
+    depends_on:
+      - app
+    networks:
+      - skybroker
+
+  # Node.js (dla Symfony Asset Mapper i frontendu)
+  node:
+    image: node:20-alpine
+    container_name: skybroker_node
+    restart: unless-stopped
+    working_dir: /app
+    volumes:
+      - ./frontend:/app
+      - node_modules:/app/node_modules
+      - ./assets:/app/assets
+    ports:
+      - "3000:3000"
+      - "5173:5173"  # Vite dev server
+    command: sh -c "npm install && npm run dev"
+    networks:
+      - skybroker
+
+  # Symfony Messenger Consumer (dla kolejek)
+  messenger:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: skybroker_messenger
+    restart: unless-stopped
+    working_dir: /var/www
+    volumes:
+      - ./:/var/www
+    environment:
+      - APP_ENV=${APP_ENV:-dev}
+      - DATABASE_URL=mysql://root:${MYSQL_ROOT_PASSWORD:-root}@database:3306/${MYSQL_DATABASE:-skybrokersystem}?serverVersion=8.0.32&charset=utf8mb4
+      - REDIS_URL=redis://redis:6379
+      - MESSENGER_TRANSPORT_DSN=redis://redis:6379/messages
+    command: php bin/console messenger:consume async --time-limit=3600 --memory-limit=128M
+    depends_on:
+      database:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - skybroker
+
+  # Elasticsearch (dla wyszukiwania - opcjonalnie)
+  elasticsearch:
+    image: elasticsearch:8.12.0
+    container_name: skybroker_elasticsearch
+    restart: unless-stopped
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    ports:
+      - "9200:9200"
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data
+    networks:
+      - skybroker
+
+volumes:
+  mysql_data:
+    driver: local
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  node_modules:
+    driver: local
+  app_cache:
+    driver: local
+  app_logs:
+    driver: local
+  elasticsearch_data:
+    driver: local
+
+networks:
+  skybroker:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16

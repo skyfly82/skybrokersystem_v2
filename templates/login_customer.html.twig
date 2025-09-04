@@ -63,14 +63,14 @@
             </div>
             <button class="btn" type="submit">Zaloguj się</button>
             <div class="links">
-                <a class="alink" href="/v2/register">Rejestracja</a>
-                <a class="alink" href="/v2/forgot">Zapomniałem hasła</a>
-                <a class="alink" href="/v2/login/admin">Logowanie administratora</a>
+                <a class="alink" href="/register">Rejestracja</a>
+                <a class="alink" href="/forgot">Zapomniałem hasła</a>
+                <a class="alink" href="/login/admin">Logowanie administratora</a>
             </div>
         </form>
     </div>
     <script>
-        const API_BASE = '/v2/api/v1';
+        const API_BASE = '/api/v1';
         function sso(p){ alert('SSO '+p+' w przygotowaniu'); }
         document.getElementById('loginForm').addEventListener('submit', async (e)=>{
             e.preventDefault();
@@ -88,7 +88,7 @@
                     localStorage.setItem('jwt_token', data.token);
                     localStorage.setItem('user_type', 'customer');
                     localStorage.setItem('user_data', JSON.stringify(data.user));
-                    location.href = '/v2/dashboard?type=customer';
+                    location.href = '/dashboard?type=customer';
                 } else {
                     err.textContent = data.message || 'Błędne dane logowania'; err.style.display='block';
                 }
@@ -97,4 +97,3 @@
     </script>
 </body>
 </html>
-

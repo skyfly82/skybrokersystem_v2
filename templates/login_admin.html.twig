@@ -45,13 +45,13 @@
             </div>
             <button class="btn" type="submit">Zaloguj się</button>
             <div class="links">
-                <a class="alink" href="/v2/login/customer">Logowanie klienta</a>
-                <a class="alink" href="/v2/web">Powrót</a>
+                <a class="alink" href="/login/customer">Logowanie klienta</a>
+                <a class="alink" href="/web">Powrót</a>
             </div>
         </form>
     </div>
     <script>
-        const API_BASE = '/v2/api/v1';
+        const API_BASE = '/api/v1';
         document.getElementById('loginForm').addEventListener('submit', async (e)=>{
             e.preventDefault();
             const email = document.getElementById('email').value.trim();
@@ -68,7 +68,7 @@
                     localStorage.setItem('jwt_token', data.token);
                     localStorage.setItem('user_type', 'system');
                     localStorage.setItem('user_data', JSON.stringify(data.user));
-                    location.href = '/v2/dashboard?type=system';
+                    location.href = '/dashboard?type=system';
                 } else {
                     err.textContent = data.message || 'Błędne dane logowania'; err.style.display='block';
                 }
@@ -77,4 +77,3 @@
     </script>
 </body>
 </html>
-

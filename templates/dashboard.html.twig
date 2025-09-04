@@ -301,7 +301,7 @@
                 <div class="api-test">
                     <h4>MailHog - Podgląd emaili</h4>
                     <p>Wszystkie wysłane emaile możesz zobaczyć w MailHog:</p>
-                    <a href="/mailhog/" target="_blank" class="btn btn-info">Otwórz MailHog UI</a>
+                    <a href="http://localhost:8025/" target="_blank" class="btn btn-info">Otwórz MailHog UI</a>
                     <small style="display: block; margin-top: 10px; color: #666;">
                         MailHog przechwytuje wszystkie emaile wysłane z aplikacji w środowisku deweloperskim.
                     </small>
@@ -323,7 +323,7 @@
     </div>
 
     <script>
-        const API_BASE = '/v2/api/v1';
+        const API_BASE = '/api/v1';
         let userType = localStorage.getItem('user_type') || 'customer';
         let userData = JSON.parse(localStorage.getItem('user_data') || '{}');
         let authToken = localStorage.getItem('jwt_token');
@@ -331,7 +331,7 @@
         // Check authentication on load
         window.addEventListener('load', function() {
             if (!authToken) {
-                window.location.href = '/v2/auth';
+            window.location.href = '/auth';
                 return;
             }
 
@@ -503,7 +503,7 @@
             responseEl.textContent = 'Wysyłanie testowego emaila...';
 
             try {
-                const response = await fetch('/v2/test-email', {
+                const response = await fetch('/test-email', {
                     method: 'GET'
                 });
 
@@ -535,7 +535,7 @@
             responseEl.textContent = 'Wysyłanie spersonalizowanego emaila...';
 
             try {
-                const response = await fetch('/v2/send-email', {
+                const response = await fetch('/send-email', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -563,7 +563,7 @@
             localStorage.removeItem('jwt_token');
             localStorage.removeItem('user_type');
             localStorage.removeItem('user_data');
-            window.location.href = '/v2/auth';
+            window.location.href = '/auth';
         }
     </script>
 </body>

@@ -75,14 +75,14 @@
             </div>
             <button class="btn" type="submit">Zaloguj się</button>
             <div class="links">
-                <a class="alink" href="/v2/register">Rejestracja</a>
-                <a class="alink" href="/v2/forgot">Zapomniałem hasła</a>
-                <a class="alink" href="/v2/web">Powrót</a>
+                <a class="alink" href="/register">Rejestracja</a>
+                <a class="alink" href="/forgot">Zapomniałem hasła</a>
+                <a class="alink" href="/web">Powrót</a>
             </div>
         </form>
     </div>
     <script>
-        const API_BASE = '/v2/api/v1';
+        const API_BASE = '/api/v1';
         let utype = 'customer';
         function sso(p){ alert('SSO '+p+' w przygotowaniu'); }
         document.getElementById('typeCustomer').onclick = () => {
@@ -107,7 +107,7 @@
                     localStorage.setItem('jwt_token', data.token);
                     localStorage.setItem('user_type', utype);
                     localStorage.setItem('user_data', JSON.stringify(data.user));
-                    location.href = '/v2/dashboard?type='+utype;
+                    location.href = '/dashboard?type='+utype;
                 } else {
                     err.textContent = data.message || 'Błędne dane logowania'; err.style.display='block';
                 }

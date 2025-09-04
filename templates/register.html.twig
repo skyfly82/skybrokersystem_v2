@@ -55,7 +55,7 @@
 </head>
 <body>
     <div class="wrap">
-        <div class="top"><div class="brand"><div class="dot"></div><strong>SkyBroker</strong></div><a href="/v2/web" style="color:var(--muted);text-decoration:none">Powrót</a></div>
+        <div class="top"><div class="brand"><div class="dot"></div><strong>SkyBroker</strong></div><a href="/web" style="color:var(--muted);text-decoration:none">Powrót</a></div>
         <div class="grid">
             <section class="main">
                 <div class="stepper">
@@ -130,7 +130,7 @@
                         </div>
                         <button class="btn" type="button" id="next">Dalej</button>
                         <div style="margin-top:8px;text-align:center">
-                            <a href="/v2/login" style="text-decoration:none;color:#2568d6;font-weight:700">Masz konto? Zaloguj się</a>
+                            <a href="/login" style="text-decoration:none;color:#2568d6;font-weight:700">Masz konto? Zaloguj się</a>
                         </div>
                     </div>
                     <div id="step2" style="display:none">
@@ -148,7 +148,7 @@
         </div>
     </div>
     <script>
-        const API_BASE='/v2/api/v1';
+        const API_BASE='/api/v1';
         const EU=[{code:'PL',name:'Polska'},{code:'DE',name:'Niemcy'},{code:'FR',name:'Francja'},{code:'IT',name:'Włochy'},{code:'ES',name:'Hiszpania'},{code:'PT',name:'Portugalia'},{code:'NL',name:'Holandia'},{code:'BE',name:'Belgia'},{code:'LU',name:'Luksemburg'},{code:'AT',name:'Austria'},{code:'CZ',name:'Czechy'},{code:'SK',name:'Słowacja'},{code:'HU',name:'Węgry'},{code:'RO',name:'Rumunia'},{code:'BG',name:'Bułgaria'},{code:'HR',name:'Chorwacja'},{code:'SI',name:'Słowenia'},{code:'LT',name:'Litwa'},{code:'LV',name:'Łotwa'},{code:'EE',name:'Estonia'},{code:'SE',name:'Szwecja'},{code:'FI',name:'Finlandia'},{code:'DK',name:'Dania'},{code:'IE',name:'Irlandia'},{code:'CY',name:'Cypr'},{code:'MT',name:'Malta'},{code:'GR',name:'Grecja'}];
         let token=null;
         let ssoProvider=null;
@@ -212,7 +212,7 @@
             e.preventDefault(); const ctype=document.getElementById('ctype').value; const email=document.getElementById('email').value.trim(); const password=document.getElementById('password').value; const first=document.getElementById('first').value.trim(); const last=document.getElementById('last').value.trim(); const company=document.getElementById('company').value.trim(); const phone=document.getElementById('phone').value.trim(); const rodo=document.getElementById('rodo').checked; const err=document.getElementById('err'); const ok=document.getElementById('ok'); err.style.display='none'; ok.style.display='none';
             if(ctype==='business' && !company){ err.textContent='Nazwa firmy jest wymagana'; err.style.display='block'; return; }
             if(!rodo){ err.textContent='Akceptuj zgodę RODO'; err.style.display='block'; return; }
-            try{ const r=await fetch(`${API_BASE}/registration/register`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,password,firstName:first,lastName:last,phone,customerType:ctype,companyName:company||null,token})}); const d=await r.json(); if(r.ok){ ok.textContent='Rejestracja zakończona. Możesz się zalogować.'; ok.style.display='block'; setTimeout(()=>location.href='/v2/login',1500); } else { err.textContent=d.message||'Błąd rejestracji (krok 2)'; err.style.display='block'; }
+            try{ const r=await fetch(`${API_BASE}/registration/register`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,password,firstName:first,lastName:last,phone,customerType:ctype,companyName:company||null,token})}); const d=await r.json(); if(r.ok){ ok.textContent='Rejestracja zakończona. Możesz się zalogować.'; ok.style.display='block'; setTimeout(()=>location.href='/login',1500); } else { err.textContent=d.message||'Błąd rejestracji (krok 2)'; err.style.display='block'; }
             }catch(ex){ err.textContent='Błąd połączenia: '+ex.message; err.style.display='block'; }
         });
     </script>

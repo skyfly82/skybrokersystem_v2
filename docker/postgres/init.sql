@@ -1,0 +1,3 @@
+-- Placeholder init for Postgres. Add seed data or extensions here.
+-- Example:
+-- CREATE EXTENSION IF NOT EXISTS pgcrypto;
