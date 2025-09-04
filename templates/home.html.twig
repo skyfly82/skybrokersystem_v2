@@ -3,115 +3,79 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SkyBrokerSystem v2 API</title>
+    <title>SkyBroker – Start</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;600;800&family=Mulish:wght@400;600;700;800&display=swap" rel="stylesheet">
     <style>
+        :root {
+            --primary: #2F7DFF; /* Sky wave blue */
+            --primary-600: #2568d6;
+            --primary-50: #EEF5FF;
+            --text: #0C0212;   /* Black coal */
+            --muted: #64748b;
+            --border: #e5e7eb;
+            --bg: #FFFFFF;     /* Pure white */
+        }
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { 
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: #333; 
+            font-family: 'Mulish', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            background: var(--bg);
+            color: var(--text); 
             min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 20px;
+            padding: 28px;
         }
+        h1, h2, h3, h4, h5, h6, .link strong { font-family: 'Be Vietnam Pro', 'Mulish', Arial, sans-serif; }
         .container { 
-            background: white; 
-            padding: 40px; 
-            border-radius: 15px; 
-            box-shadow: 0 15px 35px rgba(0,0,0,0.1);
-            max-width: 800px; 
+            background: #fff; 
+            padding: 28px; 
+            border-radius: 16px; 
+            box-shadow: 0 12px 40px rgba(15,23,42,0.08);
+            border: 1px solid var(--border);
+            max-width: 980px; 
             width: 100%;
         }
-        h1 { 
-            color: #667eea; 
-            margin-bottom: 10px; 
-            font-size: 2.5em;
-            text-align: center;
-        }
-        .subtitle { 
-            color: #666; 
-            margin-bottom: 30px; 
-            text-align: center;
-            font-size: 1.2em;
-        }
-        .status { 
-            background: #e8f5e8; 
-            color: #2d6a2d; 
-            padding: 15px; 
-            border-radius: 8px; 
-            margin-bottom: 30px;
-            border-left: 4px solid #4caf50;
-        }
-        .links { 
-            display: grid; 
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); 
-            gap: 15px; 
-            margin-bottom: 30px;
-        }
-        .link { 
-            background: #f8f9fa; 
-            padding: 20px; 
-            border-radius: 8px; 
-            text-decoration: none; 
-            color: #333; 
-            border: 2px solid transparent;
-            transition: all 0.3s ease;
-            text-align: center;
-        }
-        .link:hover { 
-            border-color: #667eea; 
-            background: #667eea; 
-            color: white; 
-            transform: translateY(-2px);
-        }
-        .features { 
-            background: #f8f9fa; 
-            padding: 20px; 
-            border-radius: 8px; 
-            margin-top: 20px;
-        }
-        .features h3 { 
-            color: #667eea; 
-            margin-bottom: 15px; 
-        }
-        .features ul { 
-            list-style: none; 
-        }
-        .features li { 
-            padding: 8px 0; 
-            border-bottom: 1px solid #eee;
-        }
-        .features li:before { 
-            content: "✓"; 
-            color: #4caf50; 
-            font-weight: bold; 
-            margin-right: 10px; 
-        }
-        .version { 
-            text-align: center; 
-            margin-top: 30px; 
-            color: #666; 
-            font-size: 0.9em;
-        }
+        .brand { display:flex; align-items:center; gap:10px; margin-bottom: 16px; }
+        .brand-badge { width: 28px; height: 28px; border-radius: 8px; background: var(--primary); }
+        h1 { font-size: 1.6em; margin-bottom: 8px; }
+        .subtitle { color: var(--muted); margin-bottom: 16px; }
+        .links { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-top: 12px; }
+        .link { background: #fff; padding: 18px; border-radius: 10px; text-decoration: none; color: var(--text); border: 1px solid var(--border); transition: all .15s ease; text-align: center; }
+        .link:hover { border-color: var(--primary); color: var(--primary); transform: translateY(-1px); }
+        .section { background:#fff; border: 1px solid var(--border); border-radius: 10px; padding: 16px; margin-top: 16px; }
+        .section h3 { color: var(--text); margin-bottom: 10px; font-size: 1.05em; }
+        .features { display:grid; grid-template-columns: repeat(auto-fit,minmax(240px,1fr)); gap:10px; }
+        .feature { background:#fff; border:1px solid var(--border); border-radius:10px; padding:12px; }
+        .version { text-align:center; margin-top: 18px; color: var(--muted); font-size: .9em; }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>SkyBrokerSystem v2</h1>
-        <p class="subtitle">Modern Courier Brokerage Platform API</p>
-        
-        <div class="status">
-            <strong>Status:</strong> Development Phase | 
-            <strong>Version:</strong> 2.0.0-dev | 
-            <strong>Framework:</strong> Symfony 7.x
+        <div class="brand">
+            <div class="brand-badge"></div>
+            <h1>SkyBroker</h1>
         </div>
+        <p class="subtitle">Wybierz obszar, aby rozpocząć</p>
 
         <div class="links">
-            <a href="/v2/auth" class="link">
-                <strong>🔐 Logowanie</strong><br>
-                <small>Panel logowania</small>
+            <a href="/v2/login/customer" class="link">
+                <strong>🔐 Logowanie klienta</strong><br>
+                <small>Konto klienta</small>
+            </a>
+            <a href="/v2/login/admin" class="link">
+                <strong>🛡️ Logowanie administratora</strong><br>
+                <small>Panel administracyjny</small>
+            </a>
+            <a href="/v2/register" class="link">
+                <strong>📝 Rejestracja</strong><br>
+                <small>Załóż nowe konto</small>
+            </a>
+            <a href="/v2/forgot" class="link">
+                <strong>🔁 Reset hasła</strong><br>
+                <small>Odzyskaj dostęp</small>
             </a>
             <a href="/v2/dashboard" class="link">
                 <strong>📊 Dashboard</strong><br>
@@ -139,33 +103,31 @@
             </a>
         </div>
 
-        <div class="features">
-            <h3>Zaimplementowane Funkcje:</h3>
-            <ul>
-                <li>Wielopoziomowe uwierzytelnianie (Customer + System)</li>
-                <li>Zabezpieczenia JWT z tokenami 1-godzinnymi</li>
-                <li>System zaproszeń dla użytkowników firmowych</li>
-                <li>Wsparcie dla wielu firm klientów</li>
-                <li>Logowanie bezpieczeństwa i aktywności</li>
-                <li>Architektura API-First z OpenAPI</li>
-            </ul>
+        <div class="section">
+            <h3>Funkcje</h3>
+            <div class="features">
+                <div class="feature">Wielopoziomowe uwierzytelnianie (Customer + System)</div>
+                <div class="feature">Zabezpieczenia JWT z tokenami 1-godzinnymi</div>
+                <div class="feature">System zaproszeń dla użytkowników firmowych</div>
+                <div class="feature">Wsparcie dla wielu firm klientów</div>
+                <div class="feature">Logowanie bezpieczeństwa i aktywności</div>
+                <div class="feature">Architektura API-First z OpenAPI</div>
+            </div>
         </div>
 
-        <div class="features">
-            <h3>Dostępne Endpointy:</h3>
-            <ul>
-                <li><strong>POST</strong> /api/v1/customer/login - Logowanie klienta</li>
-                <li><strong>POST</strong> /api/v1/system/login - Logowanie systemowe</li>
-                <li><strong>POST</strong> /api/v1/registration/register - Rejestracja</li>
-                <li><strong>GET</strong> /api/v1/customer/profile - Profil klienta</li>
-                <li><strong>GET</strong> /api/v1/customer/company-users - Użytkownicy firmy</li>
-                <li><strong>POST</strong> /api/v1/customer/invitations/send - Wyślij zaproszenie</li>
-            </ul>
+        <div class="section">
+            <h3>Endpointy</h3>
+            <div class="features">
+                <div class="feature"><strong>POST</strong> /api/v1/customer/login</div>
+                <div class="feature"><strong>POST</strong> /api/v1/system/login</div>
+                <div class="feature"><strong>POST</strong> /api/v1/registration/register</div>
+                <div class="feature"><strong>GET</strong> /api/v1/customer/profile</div>
+                <div class="feature"><strong>GET</strong> /api/v1/customer/company-users</div>
+                <div class="feature"><strong>POST</strong> /api/v1/customer/invitations/send</div>
+            </div>
         </div>
 
-        <div class="version">
-            Migracja z Laravel SkyBrokerSystem v1 | Faza 1: Uwierzytelnianie ✓
-        </div>
+        <div class="version">v2.0.0‑dev • Symfony 7.x</div>
     </div>
 </body>
 </html>

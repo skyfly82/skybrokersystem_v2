@@ -32,7 +32,7 @@ The system is organized around these primary domains:
 
 - **Backend**: Symfony 7.x, PHP 8.3+, Doctrine ORM
 - **Frontend**: React 18+ or Vue.js 3+ with TypeScript (planned)
-- **Database**: PostgreSQL 15+ (migrating from MySQL)
+- **Database**:  MySQL 8.0
 - **Cache**: Redis
 - **Queue**: Symfony Messenger
 - **API**: RESTful with OpenAPI 3.0 documentation
