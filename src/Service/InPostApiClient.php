@@ -28,7 +28,7 @@ class InPostApiClient
     public function testConnection(): bool
     {
         try {
-            $response = $this->makeRequest('GET', '/organizations/' . $this->organizationId);
+            $response = $this->makeRequest('GET', '/v1/organizations/' . $this->organizationId);
             return $response->getStatusCode() === 200;
         } catch (\Exception $e) {
             return false;
@@ -40,7 +40,7 @@ class InPostApiClient
      */
     public function getOrganization(): array
     {
-        $response = $this->makeRequest('GET', '/organizations/' . $this->organizationId);
+        $response = $this->makeRequest('GET', '/v1/organizations/' . $this->organizationId);
         return $response->toArray();
     }
 
@@ -49,7 +49,7 @@ class InPostApiClient
      */
     public function createShipment(array $shipmentData): array
     {
-        $response = $this->makeRequest('POST', '/organizations/' . $this->organizationId . '/shipments', [
+        $response = $this->makeRequest('POST', '/v1/organizations/' . $this->organizationId . '/shipments', [
             'json' => $shipmentData
         ]);
         
@@ -66,12 +66,22 @@ class InPostApiClient
     }
 
     /**
-     * Get parcel lockers
+     * Get parcel lockers (public API - no authentication required)
      */
     public function getParcelLockers(array $params = []): array
     {
+        // Points API is public and uses different URL structure
         $queryString = empty($params) ? '' : '?' . http_build_query($params);
-        $response = $this->makeRequest('GET', '/points' . $queryString);
+        $pointsApiUrl = str_replace('sandbox-api-shipx-pl', 'api-pl-points', $this->apiUrl);
+        $url = $pointsApiUrl . '/v1/points' . $queryString;
+        
+        $response = $this->httpClient->request('GET', $url, [
+            'headers' => [
+                'Accept' => 'application/json',
+            ],
+            'timeout' => self::DEFAULT_TIMEOUT,
+        ]);
+        
         return $response->toArray();
     }
 
@@ -97,11 +107,64 @@ class InPostApiClient
     }
 
     /**
-     * Track shipment
+     * Track shipment by tracking number
      */
     public function trackShipment(string $trackingNumber): array
     {
-        $response = $this->makeRequest('GET', '/shipments/tracking/' . $trackingNumber);
+        $response = $this->makeRequest('GET', '/v1/shipments/tracking/' . $trackingNumber);
+        return $response->toArray();
+    }
+
+    /**
+     * Get shipment by ID
+     */
+    public function getShipmentById(string $shipmentId): array
+    {
+        $response = $this->makeRequest('GET', '/v1/shipments/' . $shipmentId);
+        return $response->toArray();
+    }
+
+    /**
+     * Get shipment label (PDF)
+     */
+    public function getShipmentLabel(string $shipmentId, string $format = 'pdf'): string
+    {
+        $response = $this->makeRequest('GET', "/v1/shipments/{$shipmentId}/label", [
+            'headers' => [
+                'Accept' => 'application/pdf'
+            ]
+        ]);
+        
+        return $response->getContent();
+    }
+
+    /**
+     * Get multiple shipment labels
+     */
+    public function getMultipleLabels(array $shipmentIds, string $format = 'pdf'): string
+    {
+        $queryString = 'ids=' . implode(',', $shipmentIds);
+        
+        $response = $this->makeRequest('GET', "/v1/organizations/{$this->organizationId}/shipments/labels?{$queryString}", [
+            'headers' => [
+                'Accept' => 'application/pdf'
+            ]
+        ]);
+        
+        return $response->getContent();
+    }
+
+    /**
+     * Update shipment reference
+     */
+    public function updateShipmentReference(string $shipmentId, string $reference): array
+    {
+        $response = $this->makeRequest('PATCH', "/v1/shipments/{$shipmentId}", [
+            'json' => [
+                'reference' => $reference
+            ]
+        ]);
+        
         return $response->toArray();
     }
 

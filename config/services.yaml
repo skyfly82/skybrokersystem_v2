@@ -28,9 +28,9 @@ services:
         autowire: false
         arguments:
             - '@http_client'
-            - 'https://sandbox-api-shipx-pl.easypack24.net'
+            - '%env(INPOST_API_URL)%'
             - '%env(INPOST_TOKEN)%'
-            - '2387'
+            - '%env(INPOST_ORGANIZATION_ID)%'
 
     # Security Services
     App\Security\SecurityLogger:
@@ -79,3 +79,12 @@ services:
             $environment: 'sandbox'
         tags:
             - { name: 'courier.service', alias: 'inpost' }
+            
+    App\Domain\InPost\Service\InPostShipmentService:
+        arguments:
+            - '@App\Service\InPostApiClient'
+            - '@App\Repository\ShipmentRepository'
+            - '@doctrine.orm.entity_manager'
+            - '@monolog.logger'
+        tags:
+            - { name: 'monolog.logger', channel: 'inpost' }

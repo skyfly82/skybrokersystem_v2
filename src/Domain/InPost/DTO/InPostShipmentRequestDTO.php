@@ -4,115 +4,142 @@ declare(strict_types=1);
 
 namespace App\Domain\InPost\DTO;
 
-use App\Domain\Courier\DTO\ShipmentRequestDTO;
 use Symfony\Component\Validator\Constraints as Assert;
 
-class InPostShipmentRequestDTO extends ShipmentRequestDTO
+class InPostShipmentRequestDTO
 {
-    #[Assert\NotBlank]
-    #[Assert\Choice(choices: ['small', 'medium', 'large', 'xlarge'])]
-    public string $parcelSize = 'medium';
+    #[Assert\NotNull]
+    #[Assert\Type('array')]
+    private array $receiver;
+
+    #[Assert\NotNull]
+    #[Assert\Type('array')]
+    private array $parcels;
 
     #[Assert\NotBlank]
-    #[Assert\Choice(choices: ['paczkomaty', 'courier'])]
-    public string $deliveryMethod = 'paczkomaty';
+    #[Assert\Type('string')]
+    private string $service;
 
-    // For Paczkomat delivery
-    #[Assert\Regex(pattern: '/^[A-Z]{3}[0-9]{2,4}[A-Z]?$/')]
-    public ?string $targetPaczkomat = null;
+    private ?string $reference = null;
 
-    // Polish-specific fields
-    #[Assert\Regex(pattern: '/^[0-9]{2}-[0-9]{3}$/')]
-    public string $senderPostalCode;
+    private ?array $sender = null;
 
-    #[Assert\Regex(pattern: '/^[0-9]{2}-[0-9]{3}$/')]
-    public string $recipientPostalCode;
+    private ?string $comments = null;
 
-    #[Assert\NotBlank]
-    #[Assert\Regex(pattern: '/^\+48[0-9]{9}$/')]
-    public string $recipientPhone;
+    private ?array $customAttributes = null;
 
-    // Optional sender phone
-    #[Assert\Regex(pattern: '/^\+48[0-9]{9}$/')]
-    public ?string $senderPhone = null;
-
-    // COD (Cash on Delivery) support
-    #[Assert\PositiveOrZero]
-    public ?float $codAmount = null;
-
-    #[Assert\Choice(choices: ['PLN'])]
-    public string $codCurrency = 'PLN';
-
-    // Insurance
-    #[Assert\PositiveOrZero]
-    public ?float $insuranceAmount = null;
-
-    // Reference number for customer
-    #[Assert\Length(max: 50)]
-    public ?string $customerReference = null;
-
-    // Package dimensions (cm)
-    #[Assert\Positive]
-    public ?float $width = null;
-
-    #[Assert\Positive]
-    public ?float $height = null;
-
-    #[Assert\Positive]
-    public ?float $length = null;
-
-    public static function fromShipmentRequest(ShipmentRequestDTO $request): self
+    public function __construct(array $data)
     {
-        $dto = new self();
-        
-        // Copy basic shipment data
-        $dto->senderName = $request->senderName;
-        $dto->senderEmail = $request->senderEmail;
-        $dto->senderAddress = $request->senderAddress;
-        $dto->recipientName = $request->recipientName;
-        $dto->recipientEmail = $request->recipientEmail;
-        $dto->recipientAddress = $request->recipientAddress;
-        $dto->weight = $request->weight;
-        $dto->serviceType = $request->serviceType;
-        $dto->specialInstructions = $request->specialInstructions;
+        $this->receiver = $data['receiver'] ?? [];
+        $this->parcels = $data['parcels'] ?? [];
+        $this->service = $data['service'] ?? '';
+        $this->reference = $data['reference'] ?? null;
+        $this->sender = $data['sender'] ?? null;
+        $this->comments = $data['comments'] ?? null;
+        $this->customAttributes = $data['custom_attributes'] ?? null;
+    }
 
-        return $dto;
+    public function getReceiver(): array
+    {
+        return $this->receiver;
+    }
+
+    public function setReceiver(array $receiver): self
+    {
+        $this->receiver = $receiver;
+        return $this;
+    }
+
+    public function getParcels(): array
+    {
+        return $this->parcels;
+    }
+
+    public function setParcels(array $parcels): self
+    {
+        $this->parcels = $parcels;
+        return $this;
+    }
+
+    public function getService(): string
+    {
+        return $this->service;
+    }
+
+    public function setService(string $service): self
+    {
+        $this->service = $service;
+        return $this;
+    }
+
+    public function getReference(): ?string
+    {
+        return $this->reference;
+    }
+
+    public function setReference(?string $reference): self
+    {
+        $this->reference = $reference;
+        return $this;
+    }
+
+    public function getSender(): ?array
+    {
+        return $this->sender;
+    }
+
+    public function setSender(?array $sender): self
+    {
+        $this->sender = $sender;
+        return $this;
+    }
+
+    public function getComments(): ?string
+    {
+        return $this->comments;
+    }
+
+    public function setComments(?string $comments): self
+    {
+        $this->comments = $comments;
+        return $this;
+    }
+
+    public function getCustomAttributes(): ?array
+    {
+        return $this->customAttributes;
+    }
+
+    public function setCustomAttributes(?array $customAttributes): self
+    {
+        $this->customAttributes = $customAttributes;
+        return $this;
     }
 
     public function toArray(): array
     {
-        return array_merge(parent::toArray() ?? [], [
-            'parcelSize' => $this->parcelSize,
-            'deliveryMethod' => $this->deliveryMethod,
-            'targetPaczkomat' => $this->targetPaczkomat,
-            'senderPostalCode' => $this->senderPostalCode,
-            'recipientPostalCode' => $this->recipientPostalCode,
-            'recipientPhone' => $this->recipientPhone,
-            'senderPhone' => $this->senderPhone,
-            'codAmount' => $this->codAmount,
-            'codCurrency' => $this->codCurrency,
-            'insuranceAmount' => $this->insuranceAmount,
-            'customerReference' => $this->customerReference,
-            'dimensions' => [
-                'width' => $this->width,
-                'height' => $this->height,
-                'length' => $this->length,
-            ],
-        ]);
-    }
+        $data = [
+            'receiver' => $this->receiver,
+            'parcels' => $this->parcels,
+            'service' => $this->service,
+        ];
 
-    public function isPackzomatDelivery(): bool
-    {
-        return $this->deliveryMethod === 'paczkomaty';
-    }
+        if ($this->reference !== null) {
+            $data['reference'] = $this->reference;
+        }
 
-    public function hasCashOnDelivery(): bool
-    {
-        return $this->codAmount > 0;
-    }
+        if ($this->sender !== null) {
+            $data['sender'] = $this->sender;
+        }
 
-    public function hasInsurance(): bool
-    {
-        return $this->insuranceAmount > 0;
+        if ($this->comments !== null) {
+            $data['comments'] = $this->comments;
+        }
+
+        if ($this->customAttributes !== null) {
+            $data['custom_attributes'] = $this->customAttributes;
+        }
+
+        return $data;
     }
 }
