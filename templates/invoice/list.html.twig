@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="utf-8">
+    <title>Faktury – lista</title>
+    <style>
+        body { font-family: Arial, sans-serif; background:#f7f7f7; color:#111; }
+        .container { max-width: 1100px; margin: 30px auto; background:#fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 12px rgba(0,0,0,0.05); }
+        h1 { margin: 0 0 16px; font-size: 20px; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 10px 8px; border-bottom: 1px solid #e5e7eb; }
+        th { text-align: left; background: #fafafa; }
+        .actions a { margin-right: 8px; text-decoration: none; color: #2563eb; }
+        .muted { color:#6b7280; font-size: 12px; }
+        .topbar { display:flex; justify-content: space-between; align-items:center; margin-bottom: 12px; }
+        .topbar .muted a { color:#2563eb; text-decoration:none; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="topbar">
+        <h1>Faktury ({{ invoices|length }})</h1>
+        <div class="muted">Podgląd: <a href="/invoice/test-html">/invoice/test-html</a> · <a href="/invoice/test-html-new">HTML-new</a> · PDF: <a href="/invoice/test-pdf">/invoice/test-pdf</a> · <strong>PDF-new:</strong> <a href="/invoice/test-pdf-new">/invoice/test-pdf-new</a></div>
+    </div>
+    <table>
+        <thead>
+        <tr>
+            <th>ID</th>
+            <th>Numer</th>
+            <th>Data wystawienia</th>
+            <th>Nabywca</th>
+            <th>PDF</th>
+            <th>Szablon</th>
+            <th class="actions">Akcje</th>
+        </tr>
+        </thead>
+        <tbody>
+        {% for inv in invoices %}
+            <tr>
+                <td>{{ inv.id }}</td>
+                <td>{{ inv.number }}</td>
+                <td>{{ inv.issueDate|date('d.m.Y') }}</td>
+                <td>{{ inv.buyerName }}</td>
+                <td><a href="/invoice/{{ inv.id }}/pdf?engine=mpdf&tpl=new" target="_blank">Pobierz</a></td>
+                <td>{{ inv.new ? 'new' : 'default' }}</td>
+                <td class="actions">
+                    <a href="/invoice/{{ inv.id }}/html" target="_blank">HTML</a>
+                    <a href="/invoice/{{ inv.id }}/pdf?engine=mpdf&tpl=new" target="_blank">PDF</a>
+                </td>
+            </tr>
+        {% else %}
+            <tr><td colspan="5" class="muted">Brak faktur. Uruchom seeder: php bin/console app:seed-test-invoices 20</td></tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+</body>
+</html>

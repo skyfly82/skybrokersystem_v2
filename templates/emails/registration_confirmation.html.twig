@@ -1,0 +1,25 @@
+{% extends 'emails/base.html.twig' %}
+
+{% block subject %}Sky — Potwierdzenie rejestracji{% endblock %}
+
+{% block body %}
+  <p class="p">Cześć{% if name is defined and name %} {{ name }}{% endif %},</p>
+  <p class="p">Dziękujemy za rozpoczęcie rejestracji w <strong>Sky</strong>.</p>
+  <p class="p">Twój kod potwierdzający:</p>
+  <p class="h1" style="letter-spacing: 4px;">{{ code }}</p>
+  {% if expires_at is defined %}
+    <p class="p muted">Kod wygaśnie: {{ expires_at|date('Y-m-d H:i') }}</p>
+  {% endif %}
+
+  {% if confirm_url is defined %}
+    <p class="p">
+      Możesz również potwierdzić rejestrację klikając przycisk:
+    </p>
+    <p class="p">
+      <a class="btn" href="{{ confirm_url }}">Potwierdź konto</a>
+    </p>
+  {% endif %}
+
+  <p class="p muted">Jeśli to nie Ty inicjowałeś rejestrację, zignoruj tę wiadomość.</p>
+{% endblock %}
+

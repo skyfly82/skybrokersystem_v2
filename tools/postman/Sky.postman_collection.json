@@ -1,0 +1,128 @@
+{
+  "info": {
+    "name": "Sky API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Collection for Sky Auth + Registration"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://185.213.25.106" },
+    { "key": "token", "value": "" },
+    { "key": "email", "value": "test@test.com" },
+    { "key": "password", "value": "test1234" },
+    { "key": "systemEmail", "value": "admin@test.com" },
+    { "key": "systemPassword", "value": "admin123" },
+    { "key": "systemToken", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Customer Login",
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" } ],
+        "url": { "raw": "{{baseUrl}}/api/v1/customer/login", "host": ["{{baseUrl}}"], "path": ["api","v1","customer","login"] },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"{{email}}\",\n  \"password\": \"{{password}}\"\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const res = pm.response.json();",
+              "if (res.token) { pm.collectionVariables.set('token', res.token); }",
+              "pm.test('Login success', function () { pm.expect(res.success).to.be.true; });"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "System Login",
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" } ],
+        "url": { "raw": "{{baseUrl}}/api/v1/system/login", "host": ["{{baseUrl}}"], "path": ["api","v1","system","login"] },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"{{systemEmail}}\",\n  \"password\": \"{{systemPassword}}\"\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const res = pm.response.json();",
+              "if (res.token) { pm.collectionVariables.set('systemToken', res.token); }",
+              "pm.test('System login success', function () { pm.expect(res.success).to.be.true; });"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "System Profile",
+      "request": {
+        "method": "GET",
+        "header": [ { "key": "Authorization", "value": "Bearer {{systemToken}}" } ],
+        "url": { "raw": "{{baseUrl}}/api/v1/system/profile", "host": ["{{baseUrl}}"], "path": ["api","v1","system","profile"] }
+      }
+    },
+    {
+      "name": "Customer Health",
+      "request": {
+        "method": "GET",
+        "header": [ { "key": "Authorization", "value": "Bearer {{token}}" } ],
+        "url": { "raw": "{{baseUrl}}/api/v1/customer/health", "host": ["{{baseUrl}}"], "path": ["api","v1","customer","health"] }
+      }
+    },
+    {
+      "name": "Customer Profile",
+      "request": {
+        "method": "GET",
+        "header": [ { "key": "Authorization", "value": "Bearer {{token}}" } ],
+        "url": { "raw": "{{baseUrl}}/api/v1/customer/profile", "host": ["{{baseUrl}}"], "path": ["api","v1","customer","profile"] }
+      }
+    },
+    {
+      "name": "Registration — Start",
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" } ],
+        "url": { "raw": "{{baseUrl}}/api/v1/registration/start", "host": ["{{baseUrl}}"], "path": ["api","v1","registration","start"] },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"user@example.com\",\n  \"password\": \"Aa!23456\",\n  \"customerType\": \"individual\"\n}"
+        }
+      }
+    },
+    {
+      "name": "Registration — Confirm Code",
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" } ],
+        "url": { "raw": "{{baseUrl}}/api/v1/registration/confirm", "host": ["{{baseUrl}}"], "path": ["api","v1","registration","confirm"] },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"token\": \"<paste-from-start>\",\n  \"code\": \"123456\"\n}"
+        }
+      }
+    },
+    {
+      "name": "Registration — Finalize",
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" } ],
+        "url": { "raw": "{{baseUrl}}/api/v1/registration/register", "host": ["{{baseUrl}}"], "path": ["api","v1","registration","register"] },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"token\": \"<paste-from-start>\",\n  \"email\": \"user@example.com\",\n  \"firstName\": \"Jan\",\n  \"lastName\": \"Kowalski\",\n  \"customerType\": \"individual\",\n  \"password\": \"Aa!23456\"\n}"
+        }
+      }
+    }
+  ]
+}

@@ -22,15 +22,60 @@ services:
 
     # add more service definitions when explicit configuration is needed
     # please note that last definitions always *replace* previous ones
+    
+    # InPost API Client
+    App\Service\InPostApiClient:
+        autowire: false
+        arguments:
+            - '@http_client'
+            - 'https://sandbox-api-shipx-pl.easypack24.net'
+            - '%env(INPOST_TOKEN)%'
+            - '2387'
 
-    # JWT Event Listener
-    App\Security\JWTEventListener:
+    # Security Services
+    App\Security\SecurityLogger:
+        arguments:
+            - '@monolog.logger'
         tags:
-            - { name: kernel.event_listener, event: lexik_jwt_authentication.on_jwt_created, method: onJWTCreated }
-            - { name: kernel.event_listener, event: lexik_jwt_authentication.on_jwt_decoded, method: onJWTDecoded }
-            - { name: kernel.event_listener, event: lexik_jwt_authentication.on_jwt_authenticated, method: onJWTAuthenticated }
-
-    # JWT Manager Service
+            - { name: monolog.logger, channel: security }
+    
+    App\Security\InputValidator:
+        arguments:
+            - '@validator'
+    
+    App\Security\RateLimiter:
+        arguments:
+            - '@cache.app'
+            - '@logger'
+            - '@App\Security\SecurityLogger'
+    
     App\Security\JWTManager:
         arguments:
-            $jwtManager: '@lexik_jwt_authentication.jwt_manager'
+            - '@lexik_jwt_authentication.jwt_manager'
+            - '@doctrine.orm.entity_manager'
+            - '@App\Security\SecurityLogger'
+            - '@logger'
+
+    # Secrets Management Services
+    App\Service\SecretEncryptionService:
+        arguments:
+            $appSecret: '%env(APP_SECRET)%'
+            $encryptionSalt: 'skybroker_secrets_v2'
+
+    App\Service\SecretsManagerService:
+        arguments:
+            $secretRepository: '@App\Repository\SecretRepository'
+            $auditLogRepository: '@App\Repository\SecretAuditLogRepository'
+            $encryptionService: '@App\Service\SecretEncryptionService'
+            $security: '@security.helper'
+            $requestStack: '@request_stack'
+            $logger: '@logger'
+        tags:
+            - { name: 'monolog.logger', channel: 'secrets' }
+
+    # InPost Services
+    App\Domain\InPost\Service\InPostService:
+        arguments:
+            $environment: 'sandbox'
+        tags:
+            - { name: 'courier.service', alias: 'inpost' }

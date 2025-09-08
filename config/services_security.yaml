@@ -1,0 +1,54 @@
+# Security Services Configuration
+services:
+    # Security Logger
+    App\Security\SecurityLogger:
+        arguments:
+            - '@monolog.logger'
+        tags:
+            - { name: monolog.logger, channel: security }
+    
+    # Input Validator
+    App\Security\InputValidator:
+        arguments:
+            - '@validator'
+    
+    # Rate Limiter
+    App\Security\RateLimiter:
+        arguments:
+            - '@cache.app'
+            - '@logger'
+            - '@App\Security\SecurityLogger'
+    
+    # Security Middleware
+    App\Security\SecurityMiddleware:
+        arguments:
+            - '@App\Security\SecurityLogger'
+            - '@App\Security\RateLimiter'
+            - '@App\Security\InputValidator'
+            - '@logger'
+        tags:
+            - { name: kernel.event_subscriber }
+    
+    # Enhanced JWT Manager
+    App\Security\JWTManager:
+        arguments:
+            - '@lexik_jwt_authentication.jwt_manager'
+            - '@doctrine.orm.entity_manager'
+            - '@App\Security\SecurityLogger'
+            - '@logger'
+    
+    # Security Exception Handler
+    App\Security\SecurityExceptionHandler:
+        arguments:
+            - '@logger'
+            - '@App\Security\SecurityLogger'
+            - '%kernel.environment%'
+        tags:
+            - { name: kernel.event_subscriber }
+    
+    # CORS Configuration Service
+    App\Security\CorsHandler:
+        arguments:
+            - '@logger'
+        tags:
+            - { name: kernel.event_subscriber }

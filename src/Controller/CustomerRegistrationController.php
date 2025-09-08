@@ -22,7 +22,8 @@ class CustomerRegistrationController extends AbstractController
         private EntityManagerInterface $entityManager,
         private UserPasswordHasherInterface $passwordHasher,
         private ValidatorInterface $validator,
-        private NipValidator $nipValidator
+        private NipValidator $nipValidator,
+        private \App\Service\RegistrationVerificationService $verificationService
     ) {}
 
     #[Route('/start', name: 'api_customer_register_step1', methods: ['POST'])]
@@ -54,6 +55,14 @@ class CustomerRegistrationController extends AbstractController
             // With SSO, require NIP for business (handled below) and allow missing email/password
         }
 
+        // Validate and sanitize email
+        if ($email) {
+            $email = $this->sanitizeEmail($email);
+            if (!$this->isValidEmail($email)) {
+                return $this->json(['success' => false, 'message' => 'Invalid email format'], Response::HTTP_BAD_REQUEST);
+            }
+        }
+
         // Email duplication check against existing users
         if ($email) {
             $existingUser = $this->entityManager->getRepository(\App\Entity\CustomerUser::class)
@@ -73,9 +82,14 @@ class CustomerRegistrationController extends AbstractController
             }
         }
 
+        // Validate password strength for non-SSO flows
+        if ($password && !$this->isPasswordStrong($password)) {
+            return $this->json(['success' => false, 'message' => 'Password must be at least 8 characters with uppercase, lowercase, number and special character'], Response::HTTP_BAD_REQUEST);
+        }
+
         $pre = new PreliminaryRegistration();
         $pre->setEmail($email)
-            ->setPasswordHash($password ? password_hash($password, PASSWORD_BCRYPT) : password_hash(bin2hex(random_bytes(8)), PASSWORD_BCRYPT))
+            ->setPasswordHash($password ? password_hash($password, PASSWORD_BCRYPT, ['cost' => 12]) : password_hash(bin2hex(random_bytes(16)), PASSWORD_BCRYPT, ['cost' => 12]))
             ->setCustomerType($customerType)
             ->setCountry($country)
             ->setUnregisteredBusiness($unregistered)
@@ -86,13 +100,85 @@ class CustomerRegistrationController extends AbstractController
         $this->entityManager->persist($pre);
         $this->entityManager->flush();
 
+        // Send verification code via email
+        try {
+            $this->verificationService->sendCode($pre);
+            $pre->setStatus('email_sent')->setUpdatedAt(new \DateTime());
+            $this->entityManager->flush();
+        } catch (\Throwable $e) {
+            // Don't crash the flow; report error to client
+            return $this->json([
+                'success' => true,
+                'message' => 'Step 1 completed, but failed to send verification code',
+                'token' => $pre->getToken(),
+                'error' => $e->getMessage(),
+            ], Response::HTTP_CREATED);
+        }
+
         return $this->json([
             'success' => true,
-            'message' => 'Step 1 completed',
+            'message' => 'Step 1 completed, verification code sent to email',
             'token' => $pre->getToken(),
             'b2b' => $pre->isB2b(),
-            'next' => '/api/v1/registration/register'
+            'next' => '/api/v1/registration/confirm'
         ], Response::HTTP_CREATED);
+    }
+
+    #[Route('/confirm', name: 'api_customer_register_confirm', methods: ['POST'])]
+    public function confirm(Request $request): JsonResponse
+    {
+        $data = json_decode($request->getContent(), true) ?? [];
+        $token = $data['token'] ?? '';
+        $code = $data['code'] ?? '';
+        if (!$token || !$code) {
+            return $this->json(['success' => false, 'message' => 'Token and code are required'], Response::HTTP_BAD_REQUEST);
+        }
+        $ok = $this->verificationService->verify($token, $code);
+        if ($ok) {
+            return $this->json(['success' => true, 'message' => 'Email verified', 'next' => '/api/v1/registration/register']);
+        }
+        return $this->json(['success' => false, 'message' => 'Invalid or expired code'], Response::HTTP_BAD_REQUEST);
+    }
+
+    #[Route('/resend-code', name: 'api_customer_register_resend_code', methods: ['POST'])]
+    public function resendCode(Request $request): JsonResponse
+    {
+        $data = json_decode($request->getContent(), true) ?? [];
+        $token = $data['token'] ?? '';
+        if (!$token) {
+            return $this->json(['success' => false, 'message' => 'Token is required'], Response::HTTP_BAD_REQUEST);
+        }
+        $pre = $this->entityManager->getRepository(\App\Entity\PreliminaryRegistration::class)->findOneBy(['token' => $token]);
+        if (!$pre) {
+            return $this->json(['success' => false, 'message' => 'Invalid token'], Response::HTTP_BAD_REQUEST);
+        }
+        try {
+            $this->verificationService->sendCode($pre);
+            $pre->setStatus('email_sent')->setUpdatedAt(new \DateTime());
+            $this->entityManager->flush();
+            return $this->json(['success' => true, 'message' => 'Verification code resent']);
+        } catch (\RuntimeException $e) {
+            if (str_starts_with($e->getMessage(), 'cooldown:')) {
+                $retry = (int)substr($e->getMessage(), strlen('cooldown:'));
+                $response = $this->json(['success' => false, 'message' => 'Please wait before requesting another code'], Response::HTTP_TOO_MANY_REQUESTS);
+                $response->headers->set('Retry-After', (string)$retry);
+                return $response;
+            }
+            if ($e->getMessage() === 'daily_limit') {
+                return $this->json(['success' => false, 'message' => 'Daily limit reached'], Response::HTTP_TOO_MANY_REQUESTS);
+            }
+            return $this->json(['success' => false, 'message' => 'Unable to resend code'], Response::HTTP_BAD_REQUEST);
+        }
+    }
+
+    #[Route('/confirm-link/{token}/{code}', name: 'api_customer_register_confirm_link', methods: ['GET'])]
+    public function confirmLink(string $token, string $code): Response
+    {
+        $ok = $this->verificationService->verify($token, $code);
+        // Show a simple HTML page with result and a link to /web
+        return $this->render('web/verification_result.html.twig', [
+            'success' => $ok,
+        ]);
     }
 
     #[Route('/register', name: 'api_customer_register', methods: ['POST'])]
@@ -112,6 +198,12 @@ class CustomerRegistrationController extends AbstractController
             }
         }
 
+        // Validate and sanitize email
+        $data['email'] = $this->sanitizeEmail($data['email']);
+        if (!$this->isValidEmail($data['email'])) {
+            return $this->json(['error' => 'Invalid email format'], Response::HTTP_BAD_REQUEST);
+        }
+
         if (($data['customerType'] ?? null) === 'business' && empty($data['companyName'])) {
             return $this->json(['error' => "Field 'companyName' is required for business"], Response::HTTP_BAD_REQUEST);
         }
@@ -125,10 +217,13 @@ class CustomerRegistrationController extends AbstractController
         }
 
         try {
-            // Check preliminary ssoProvider to decide about password requirement
+            // Check preliminary and require verified email
             $pre = null;
             if (!empty($data['token'])) {
                 $pre = $this->entityManager->getRepository(PreliminaryRegistration::class)->findOneBy(['token' => $data['token']]);
+            }
+            if (!$pre || $pre->getStatus() !== 'email_verified') {
+                return $this->json(['error' => 'Email not verified'], Response::HTTP_FORBIDDEN);
             }
 
             // Create Customer (Company)
@@ -179,11 +274,19 @@ class CustomerRegistrationController extends AbstractController
             // Hash password (if SSO, generate a strong random password)
             $rawPassword = $data['password'] ?? null;
             if (!$rawPassword && $pre && $pre->getSsoProvider()) {
-                $rawPassword = bin2hex(random_bytes(12));
+                $rawPassword = bin2hex(random_bytes(16));
             }
             if (!$rawPassword) {
                 return $this->json(['error' => 'Password is required'], Response::HTTP_BAD_REQUEST);
             }
+            
+            // Validate password strength for regular registration
+            if (!$pre || !$pre->getSsoProvider()) {
+                if (!$this->isPasswordStrong($rawPassword)) {
+                    return $this->json(['error' => 'Password must be at least 8 characters with uppercase, lowercase, number and special character'], Response::HTTP_BAD_REQUEST);
+                }
+            }
+            
             $hashedPassword = $this->passwordHasher->hashPassword($customerUser, $rawPassword);
             $customerUser->setPassword($hashedPassword);
 
@@ -296,5 +399,34 @@ class CustomerRegistrationController extends AbstractController
                 ]
             ]
         ]);
+    }
+
+    /**
+     * Validate password strength according to security standards
+     */
+    private function isPasswordStrong(string $password): bool
+    {
+        // Minimum 8 characters, at least one uppercase, lowercase, number and special character
+        return strlen($password) >= 8 
+            && preg_match('/[A-Z]/', $password)
+            && preg_match('/[a-z]/', $password) 
+            && preg_match('/[0-9]/', $password)
+            && preg_match('/[^A-Za-z0-9]/', $password);
+    }
+
+    /**
+     * Sanitize email input to prevent XSS and injection attacks
+     */
+    private function sanitizeEmail(string $email): string
+    {
+        return filter_var(trim($email), FILTER_SANITIZE_EMAIL);
+    }
+
+    /**
+     * Validate email format
+     */
+    private function isValidEmail(string $email): bool
+    {
+        return filter_var($email, FILTER_VALIDATE_EMAIL) !== false;
     }
 }

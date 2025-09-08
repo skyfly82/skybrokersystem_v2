@@ -14,7 +14,7 @@ class HealthController extends AbstractController
         return $this->json([
             'status' => 'ok',
             'timestamp' => new \DateTime(),
-            'service' => 'SkyBrokerSystem v2',
+            'service' => 'Sky',
             'version' => '2.0.0-dev'
         ]);
     }

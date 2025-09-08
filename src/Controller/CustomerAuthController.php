@@ -71,6 +71,26 @@ class CustomerAuthController extends AbstractController
         ]);
     }
 
+    #[Route('/health', name: 'api_customer_health', methods: ['GET'])]
+    public function health(): JsonResponse
+    {
+        /** @var CustomerUser|null $user */
+        $user = $this->getUser();
+        if (!$user instanceof CustomerUser) {
+            return $this->json(['success' => false, 'message' => 'Not authenticated'], Response::HTTP_UNAUTHORIZED);
+        }
+        return $this->json([
+            'success' => true,
+            'message' => 'Token valid',
+            'user' => [
+                'id' => $user->getId(),
+                'email' => $user->getEmail(),
+                'role' => $user->getCustomerRole(),
+                'status' => $user->getStatus(),
+            ]
+        ]);
+    }
+
     #[Route('/company-users', name: 'api_customer_company_users', methods: ['GET'])]
     public function getCompanyUsers(): JsonResponse
     {

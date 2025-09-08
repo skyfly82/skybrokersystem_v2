@@ -12,13 +12,15 @@ class HomeController extends AbstractController
     #[Route('/', name: 'app_home', methods: ['GET'])]
     public function index(): Response
     {
-        return $this->redirectToRoute('app_home_web');
+        // Zachowujemy dotychczasową stronę startową do dev/testów pod '/'
+        return $this->render('home.html.twig');
     }
 
     #[Route('/web', name: 'app_home_web', methods: ['GET'])]
     public function web(): Response
     {
-        return $this->render('home.html.twig');
+        // Nowa profesjonalna strona główna dostępna pod '/web'
+        return $this->render('web/home.html.twig');
     }
 
     #[Route('/auth', name: 'app_auth', methods: ['GET'])]

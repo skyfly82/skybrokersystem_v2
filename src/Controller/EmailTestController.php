@@ -18,9 +18,9 @@ class EmailTestController extends AbstractController
             $email = (new Email())
                 ->from('noreply@skybrokersystem.com')
                 ->to('test@example.com')
-                ->subject('SkyBrokerSystem v2 - Test Email')
-                ->text('To jest testowy email z SkyBrokerSystem v2!')
-                ->html('<h1>Test Email</h1><p>To jest testowy email z <strong>SkyBrokerSystem v2</strong>!</p><p>System działa poprawnie.</p>');
+                ->subject('Sky - Test Email')
+                ->text('To jest testowy email z Sky!')
+                ->html($this->renderView('emails/test.html.twig'));
 
             $mailer->send($email);
 
@@ -31,7 +31,7 @@ class EmailTestController extends AbstractController
                 'details' => [
                     'from' => 'noreply@skybrokersystem.com',
                     'to' => 'test@example.com',
-                    'subject' => 'SkyBrokerSystem v2 - Test Email'
+                    'subject' => 'Sky - Test Email'
                 ]
             ]);
         } catch (\Exception $e) {
@@ -71,7 +71,7 @@ class EmailTestController extends AbstractController
                 ->to($to)
                 ->subject($subject)
                 ->text(strip_tags($message))
-                ->html("<h1>{$subject}</h1><p>{$message}</p><hr><small>Wysłane z SkyBrokerSystem v2</small>");
+                ->html($this->renderView('emails/test.html.twig', [ 'message' => $message ]));
 
             $mailer->send($email);
 

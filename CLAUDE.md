@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-SkyBrokerSystem v2 is a complete rewrite of a courier brokerage platform, migrating from Laravel to **Symfony 7.x** with modern PHP practices. This is currently in **early development phase** with only basic project structure established.
+Sky is a complete rewrite of a courier brokerage platform, migrating from Laravel to **Symfony 7.x** with modern PHP practices. This is currently in **early development phase** with only basic project structure established.
 
 ## Architecture & Design Principles
 

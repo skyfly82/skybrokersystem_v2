@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sky — Platforma dla Klientów i Partnerów</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 128 128%22><rect rx=%2224%22 width=%22128%22 height=%22128%22 fill=%22%232F7DFF%22/><text x=%2222%22 y=%2286%22 font-size=%2272%22 fill=%22white%22 font-family=%22Arial, Helvetica, sans-serif%22>SB</text></svg>">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@500;700;800&family=Mulish:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        /* Brandbook: kolory i typografia */
+        :root {
+            --primary: #2F7DFF; /* Sky wave blue */
+            --primary-600: #2568d6;
+            --primary-50: #EEF5FF;
+            --accent: #22d3ee;   /* Sky cyan */
+            --ink: #0C0212;      /* Black coal */
+            --muted: #6b7280;    /* Slate */
+            --border: #e5e7eb;   /* Gray-200 */
+            --bg: #ffffff;       /* Base white */
+            --bg-contrast: #0b1220; /* navy bg */
+        }
+        * { box-sizing: border-box; }
+        html, body { height: 100%; }
+        body {
+            margin: 0;
+            font-family: 'Mulish', system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, sans-serif;
+            color: var(--ink);
+            background: linear-gradient(180deg, #f8fbff 0%, #ffffff 40%);
+        }
+        h1, h2, h3, .brand { font-family: 'Be Vietnam Pro', 'Mulish', Arial, sans-serif; }
+
+        /* Top navigation */
+        .nav {
+            width: 100%;
+            padding: 16px 22px;
+            position: sticky;
+            top: 0;
+            background: rgba(255,255,255,0.7);
+            backdrop-filter: saturate(180%) blur(8px);
+            border-bottom: 1px solid var(--border);
+            z-index: 20;
+        }
+        .nav-inner { max-width: 1120px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; }
+        .brand { display:flex; align-items:center; gap:10px; color: var(--ink); text-decoration: none; }
+        .brand-mark { width: 28px; height: 28px; border-radius: 8px; background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%); box-shadow: 0 6px 18px rgba(47,125,255,0.3);}        
+        .brand-name { font-weight: 800; letter-spacing: 0.2px; }
+        .nav-links { display:flex; gap: 14px; align-items:center; }
+        .btn { border: 1px solid var(--border); background: #fff; color: var(--ink); padding: 10px 14px; border-radius: 10px; text-decoration: none; transition: .15s ease; font-weight: 600; }
+        .btn:hover { border-color: var(--primary); color: var(--primary); transform: translateY(-1px); }
+        .btn-primary { background: var(--primary); color: #fff; border-color: var(--primary); }
+        .btn-primary:hover { background: var(--primary-600); border-color: var(--primary-600); color:#fff; }
+
+        /* Hero */
+        .hero { position: relative; overflow: hidden; }
+        .hero-inner { max-width: 1120px; margin: 0 auto; padding: 60px 22px 40px; display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 28px; align-items: center; }
+        .hero h1 { font-size: clamp(32px, 5vw, 48px); line-height: 1.05; margin: 0 0 12px; }
+        .hero p { color: var(--muted); margin: 0 0 18px; font-size: 1.05rem; }
+        .hero-cta { display:flex; gap: 10px; flex-wrap: wrap; }
+        .hero-card { background: #fff; border: 1px solid var(--border); border-radius: 14px; padding: 18px; box-shadow: 0 10px 30px rgba(2,6,23,0.06); }
+        .hero-badge { display:inline-flex; align-items:center; gap:8px; background: var(--primary-50); color: var(--primary); border: 1px solid #dbeafe; border-radius: 999px; padding: 6px 10px; font-weight: 700; font-size: .9rem; margin-bottom: 10px; }
+        .hero-art {
+            position: relative; height: 100%; min-height: 280px; border-radius: 16px; border: 1px solid var(--border);
+            background: radial-gradient(1000px 300px at -10% -10%, rgba(47,125,255,0.20) 0%, rgba(47,125,255,0.04) 60%, rgba(255,255,255,1) 100%),
+                        radial-gradient(800px 240px at 110% 10%, rgba(34,211,238,0.18) 0%, rgba(34,211,238,0.02) 60%, rgba(255,255,255,1) 100%);
+        }
+        .hero-art::after { content: ""; position:absolute; inset: 0; border-radius: 16px; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.5); pointer-events: none; }
+
+        /* Features */
+        .section { padding: 36px 22px; }
+        .section-inner { max-width: 1120px; margin: 0 auto; }
+        .section h2 { font-size: clamp(22px, 3.6vw, 30px); margin: 0 0 18px; }
+        .features { display: grid; grid-template-columns: repeat(12, 1fr); gap: 14px; }
+        .feature { grid-column: span 6; background: #fff; border:1px solid var(--border); border-radius: 12px; padding: 16px; box-shadow: 0 8px 26px rgba(2,6,23,0.05); }
+        .feature h3 { font-size: 1.05rem; margin: 0 0 6px; }
+        .feature p { color: var(--muted); margin: 0; }
+        @media (max-width: 860px) { .hero-inner { grid-template-columns: 1fr; } .feature { grid-column: span 12; } }
+
+        /* CTA */
+        .cta { background: linear-gradient(180deg, #f6fbff 0%, #ffffff 100%); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+        .cta-box { background: #fff; border: 1px solid var(--border); border-radius: 14px; padding: 20px; display:flex; gap:14px; align-items:center; justify-content: space-between; }
+        .cta-title { font-weight: 800; }
+
+        /* Footer */
+        .footer { padding: 20px 22px 36px; color: var(--muted); }
+        .footer-inner { max-width: 1120px; margin: 0 auto; display:flex; align-items:center; justify-content: space-between; }
+        .footer a { color: var(--muted); text-decoration: none; }
+        .footer a:hover { color: var(--primary); }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+    <noscript>Ta strona wymaga włączonego JavaScript.</noscript>
+    {{ importmap('web') }}
+</body>
+</html>

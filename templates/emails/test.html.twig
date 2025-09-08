@@ -1,0 +1,14 @@
+{% extends 'emails/base.html.twig' %}
+
+{% block subject %}Sky — Test Email{% endblock %}
+
+{% block body %}
+  <p class="p">Witaj!</p>
+  <p class="p">To jest testowy e‑mail wysłany z <strong>Sky</strong>. System e‑mail działa poprawnie.</p>
+  {% if message is defined and message %}
+    <p class="p">Wiadomość:</p>
+    <p class="p">{{ message|nl2br }}</p>
+  {% endif %}
+  <p class="p muted">Jeśli nie spodziewałeś się tej wiadomości, możesz ją zignorować.</p>
+{% endblock %}
+

@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="utf-8">
+    <title>Faktura VAT</title>
+    <style>
+        @page { margin: 10mm; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: "Be Vietnam Pro", DejaVu Sans, Arial, sans-serif;
+            font-size: 10pt;
+            color: #0C0212;
+            line-height: 1.3;
+            background: #fff;
+        }
+        
+        /* Override body color for h2 elements */
+        body h2 {
+            color: #2F7DFF !important;
+            font-size: 9pt !important;
+        }
+        a, strong, b, span, div, td, th { text-decoration: none !important; }
+        thead { display: table-header-group; }
+        tfoot { display: table-footer-group; }
+        .no-break { page-break-inside: avoid; }
+        .container { padding: 20px; width: 190mm; margin: 0 auto; }
+
+        /* Header */
+        table.header-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 15px;
+        }
+        .header-left { width: 60%; vertical-align: middle; }
+        .header-right { width: 40%; text-align: right; vertical-align: middle; }
+        .invoice-title {
+            font-size: 24pt;
+            font-weight: bold;
+            color: #2F7DFF;
+            margin-bottom: 4px;
+        }
+        .invoice-number {
+            font-size: 12pt;
+            font-weight: bold;
+            margin: 2px 0;
+        }
+        .invoice-dates {
+            font-size: 9pt;
+            color: #475569;
+            margin-bottom: 8px;
+        }
+        .logo {
+            height: 50px;
+            width: auto;
+            max-width: 200px;
+        }
+
+        /* LINIA POD NAGŁÓWKIEM */
+        .header-border {
+            height: 2px;
+            background: #2F7DFF;
+            margin: 10px 0 15px 0;
+        }
+
+        /* Company boxes - BEZ BORDERÓW */
+        table.company-section {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 0;
+            margin-bottom: 25px;
+            table-layout: fixed;
+        }
+        table.company-section td { border: 0; padding: 0; }
+        td.company-cell { width: 50%; vertical-align: top; }
+        td.company-cell.left { padding-right: 12px; }
+        td.company-cell.right { padding-left: 12px; }
+
+        .company-box {
+            padding: 16px 14px;
+            background: #fff;
+            page-break-inside: avoid;
+        }
+
+        /* Zabezpieczenie */
+        .company-box * {
+            border: 0 !important;
+            box-shadow: none !important;
+        }
+        
+
+        .company-box h2 {
+            font-size: 9pt;
+            font-weight: bold;
+            color: #2F7DFF !important;
+            margin-bottom: 12px;
+            padding-bottom: 5px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        
+        /* Force blue for company titles - highest specificity */
+        table.company-section .company-box h2 {
+            color: #2F7DFF !important;
+            font-size: 9pt !important;
+        }
+        
+        h2 {
+            color: #2F7DFF !important;
+            font-size: 9pt !important;
+        }
+
+        .company-name {
+            font-size: 11pt;
+            font-weight: bold;
+            color: #0C0212;
+            margin-bottom: 6px;
+        }
+
+        .company-details {
+            font-size: 9pt;
+            line-height: 1.5;
+            color: rgba(12,2,18,0.85);
+        }
+        
+        .company-details > div {
+            margin-top: 4px;
+        }
+
+        .nip-info {
+            font-weight: bold;
+            color: #0C0212;
+            margin: 8px 0 4px;
+        }
+        
+        .bank-info {
+            margin-top: 8px;
+            font-size: 9pt;
+        }
+        
+        .bank-account {
+            font-weight: bold;
+            color: #0C0212;
+        }
+
+        /* Items */
+        table.items-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            margin: 10px 0;
+            table-layout: fixed;
+            border: none !important;
+        }
+        
+        /* Force horizontal lines only */
+        table.items-table, table.vat-summary-table {
+            border-collapse: separate !important;
+            border-spacing: 0 !important;
+        }
+        
+        /* Remove all borders then add horizontal lines */
+        table.vat-summary-table th, table.vat-summary-table td {
+            border: 0 !important;
+            border-left: 0 !important;
+            border-right: 0 !important;
+            border-bottom: 0 !important;
+            outline: none !important;
+        }
+        
+        /* Clean styles - let inline styles work */
+        th, td { vertical-align: middle; }
+        table.items-table thead th {
+            background: #2F7DFF;
+            color: #fff;
+            font-weight: bold;
+            font-size: 8.5pt;
+            padding: 6px 4px;
+            text-align: center;
+            border: none !important;
+        }
+        table.items-table td {
+            padding: 5px 4px;
+            font-size: 8.5pt;
+        }
+        .text-center { text-align: center; }
+        .text-right { text-align: right; }
+        .nowrap { white-space: nowrap; }
+
+        /* Column widths (190mm total) */
+        .w-lp   { width: 7.6mm; }
+        .w-name { width: 91.2mm; }
+        .w-qty  { width: 15.2mm; }
+        .w-jm   { width: 15.2mm; }
+        .w-vat  { width: 15.2mm; }
+        .w-unit { width: 22.8mm; }
+        .w-sum  { width: 22.8mm; }
+
+        /* LINIA POD TABELĄ 
+        .items-border {
+            height: 2px;
+            background: #2F7DFF;
+            margin: 15px 0 5px 0; /* MNIEJSZY ODSTĘP */
+       /* } 
+
+        /* Payment + VAT */
+        table.payment-summary-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            margin-top: 22px;
+        }
+        .payment-left { width: 58%; vertical-align: top; padding-right: 15px; }
+        .summary-right { width: 42%; vertical-align: top; padding-left: 15px; }
+        .payment-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .payment-table td {
+            padding: 2px 4px;
+            font-size: 10pt;
+        }
+        .payment-table td:first-child {
+            color: #475569;
+            width: 55%;
+        }
+        .payment-table td:last-child {
+            font-weight: 800;
+            text-align: left;
+            padding-left: 8px;
+        }
+        .total-info {
+            font-size: 10pt;
+            margin-top: 10px;
+        }
+        .total-info div {
+            margin: 2px 0;
+        }
+        .amount-due {
+            font-size: 11pt;
+            font-weight: 800;
+            color: #2F7DFF;
+        }
+
+        table.vat-summary-table {
+            width: 320px;
+            border-collapse: separate;
+            border-spacing: 0;
+            border: none !important;
+        }
+        table.vat-summary-table th {
+            background: #0C0212;
+            color: #fff;
+            font-weight: bold;
+            font-size: 8.5pt;
+            padding: 6px 4px;
+            text-align: right;
+            border: none !important;
+        }
+        table.vat-summary-table td {
+            padding: 5px 4px;
+            font-size: 8.5pt;
+            text-align: right;
+        }
+        table.vat-summary-table tr.total td {
+            background: #f3f4f6;
+            font-weight: bold;
+        }
+
+        /* Signatures - ZMNIEJSZONE I OBNIŻONE LINIE */
+        table.signatures {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            margin-top: 40px;
+        }
+        .signature-left, .signature-right {
+            width: 50%;
+            text-align: center;
+            vertical-align: bottom;
+            height: 80px;
+        }
+        .signature-left {
+            padding-right: 15px;
+        }
+        .signature-right {
+            padding-left: 15px;
+        }
+        .signature-text {
+            color: #475569;
+            font-size: 8pt;
+        }
+
+        /* mPDF fixes */
+        .spacer {
+            font-size: 1px;
+            line-height: 1px;
+        }
+        .spacer-10 {
+            height: 10px;
+        }
+        .signature-line {
+            border-top: 1px solid #94a3b8;
+            height: 0;
+            margin: 0 40px 6px 40px;
+            width: auto;
+        }
+
+        .doc-footer {
+            position: fixed;
+            bottom: 10mm;
+            left: 0;
+            right: 0;
+            padding-top: 8px;
+            border-top: 1px solid #e5e7eb;
+            font-size: 7pt;
+            color: #64748b;
+            text-align: center;
+            background: white;
+        }
+    </style>
+    {% macro pln(v) %}{{ (v)|number_format(2, ',', ' ') }} PLN{% endmacro %}
+</head>
+<body>
+<div class="container">
+    <table class="header-table">
+        <tr>
+            <td class="header-left">
+                <div class="invoice-title">Faktura VAT</div>
+                <div class="invoice-number">{{ invoice.number }}</div>
+                <div class="invoice-dates">Data wystawienia: {{ invoice.issue_date }} • Data sprzedaży: {{ invoice.sell_date }}</div>
+            </td>
+            <td class="header-right">
+                {% if logo_path %}
+                    <img class="logo" src="{{ logo_path }}" alt="Logo">
+                {% endif %}
+            </td>
+        </tr>
+    </table>
+    
+    <!-- LINIA POD NAGŁÓWKIEM -->
+    <div class="header-border"></div>
+
+    <table class="company-section">
+        <tr>
+            <td class="company-cell left">
+                <div class="company-box">
+                    <h2>Sprzedawca</h2>
+                    <div class="company-name">{{ seller.name }}</div>
+                    <div class="company-details">
+                        <div>{{ seller.address }}</div>
+                        <div class="nip-info">NIP: {{ seller.nip }}</div>
+                        <div class="bank-info">Bank: {{ seller.bank }}</div>
+                        <div class="bank-account">{{ seller.iban }}</div>
+                    </div>
+                </div>
+            </td>
+            <td class="company-cell right">
+                <div class="company-box">
+                    <h2>Nabywca</h2>
+                    <div class="company-name">{{ buyer.name }}</div>
+                    <div class="company-details">
+                        <div>{{ buyer.address }}</div>
+                        <div class="nip-info">NIP: {{ buyer.nip }}</div>
+                    </div>
+                </div>
+            </td>
+        </tr>
+    </table>
+
+    <table class="items-table">
+        <thead>
+            <tr>
+                <th class="w-lp">Lp.</th>
+                <th class="w-name">Nazwa towaru/usługi</th>
+                <th class="w-qty">Ilość</th>
+                <th class="w-jm">J.m.</th>
+                <th class="w-vat">VAT</th>
+                <th class="w-unit">Cena brutto</th>
+                <th class="w-sum">Wartość brutto</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for r in items %}
+            <tr>
+                <td class="text-center" style="border-top: 1px solid #666; padding: 5px 4px;">{{ r.lp }}</td>
+                <td style="border-top: 1px solid #666; padding: 5px 4px;">{{ r.name }}</td>
+                <td class="text-right" style="border-top: 1px solid #666; padding: 5px 4px;">{{ r.qty|number_format(2, ',', ' ') }}</td>
+                <td class="text-center" style="border-top: 1px solid #666; padding: 5px 4px;">{{ r.jm }}</td>
+                <td class="text-right" style="border-top: 1px solid #666; padding: 5px 4px;">{{ r.vat }}%</td>
+                <td class="text-right nowrap" style="border-top: 1px solid #666; padding: 5px 4px;">{{ _self.pln(r.unit_brutto) }}</td>
+                <td class="text-right nowrap" style="border-top: 1px solid #666; padding: 5px 4px; font-weight: bold;">{{ _self.pln(r.total_brutto) }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    
+
+    <table class="payment-summary-table">
+        <tr>
+            <td class="payment-left">
+                <table class="payment-table">
+                    <tr>
+                        <td>Sposób płatności:</td>
+                        <td><strong>{{ invoice.payment_method }}</strong></td>
+                    </tr>
+                    <tr>
+                        <td>Termin płatności:</td>
+                        <td><strong>{{ invoice.payment_due }}</strong></td>
+                    </tr>
+                </table>
+                <!-- OBNIŻENIE O 2 WIERSZE -->
+                <br><br>
+                <div class="total-info">
+                    <div>Razem do zapłaty: <strong>{{ _self.pln(summary.total_brutto) }}</strong></div>
+                    <div>Słownie: <strong>{{ summary.in_words }}</strong></div>
+                    <div>Zapłacono: <strong>{{ _self.pln(summary.paid) }}</strong></div><br>
+                    <div class="amount-due"><strong>Pozostaje: {{ _self.pln(summary.due) }}</strong></div>
+                </div>
+            </td>
+            <td class="summary-right">
+                <table class="vat-summary-table">
+                    <thead>
+                        <tr>
+                            <th>Stawka</th>
+                            <th>Netto</th>
+                            <th>VAT</th>
+                            <th>Brutto</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for v in summary.vat_rows %}
+                        <tr>
+                            <td>{{ v.rate }}</td>
+                            <td class="nowrap">{{ _self.pln(v.netto) }}</td>
+                            <td class="nowrap">{{ _self.pln(v.vat) }}</td>
+                            <td class="nowrap">{{ _self.pln(v.brutto) }}</td>
+                        </tr>
+                        {% endfor %}
+                        <tr class="total">
+                            <td>Razem:</td>
+                            <td class="nowrap">{{ _self.pln(summary.total_netto) }}</td>
+                            <td class="nowrap">{{ _self.pln(summary.total_vat) }}</td>
+                            <td class="nowrap">{{ _self.pln(summary.total_brutto) }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </td>
+        </tr>
+    </table>
+
+    <br><br><br>
+    <table class="signatures">
+        <tr>
+            <td class="signature-left">
+                <hr style="border: none; border-top: 1px solid #000; width: 60%; margin: 0 auto 10px auto;">
+                <div class="signature-text">Podpis osoby uprawnionej<br>do wystawienia faktury</div>
+            </td>
+            <td class="signature-right">
+                <hr style="border: none; border-top: 1px solid #000; width: 60%; margin: 0 auto 10px auto;">
+                <div class="signature-text">Podpis osoby uprawnionej<br>do odbioru faktury</div>
+            </td>
+        </tr>
+    </table>
+
+    <br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br>
+    <div class="doc-footer">
+        Wygenerowano przez system BLPaczka.com | Dokument zgodny z przepisami prawa polskiego
+    </div>
+</div>
+</body>
+</html>

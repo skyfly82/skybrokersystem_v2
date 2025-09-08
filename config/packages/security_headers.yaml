@@ -1,0 +1,3 @@
+framework:
+    # Security headers configuration
+    http_method_override: false

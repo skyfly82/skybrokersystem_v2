@@ -1,4 +1,4 @@
-# SkyBrokerSystem v2 - Implementation Plan
+# Sky - Implementation Plan
 
 ## Executive Summary
 

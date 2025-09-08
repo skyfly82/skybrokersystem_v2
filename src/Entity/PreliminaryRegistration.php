@@ -52,6 +52,12 @@ class PreliminaryRegistration
     #[ORM\Column(type: Types::DATETIME_MUTABLE, nullable: true)]
     private ?\DateTimeInterface $updatedAt = null;
 
+    #[ORM\Column]
+    private bool $emailVerified = false;
+
+    #[ORM\Column(type: Types::DATETIME_MUTABLE, nullable: true)]
+    private ?\DateTimeInterface $emailVerifiedAt = null;
+
     public function __construct()
     {
         $this->createdAt = new \DateTime();
@@ -95,4 +101,3 @@ class PreliminaryRegistration
     public function getUpdatedAt(): ?\DateTimeInterface { return $this->updatedAt; }
     public function setUpdatedAt(?\DateTimeInterface $dt): self { $this->updatedAt = $dt; return $this; }
 }
-

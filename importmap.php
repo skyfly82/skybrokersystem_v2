@@ -16,6 +16,11 @@ return [
         'path' => './assets/app.js',
         'entrypoint' => true,
     ],
+    // React-powered web homepage entrypoint
+    'web' => [
+        'path' => './assets/web/main.js',
+        'entrypoint' => true,
+    ],
     '@hotwired/stimulus' => [
         'version' => '3.2.2',
     ],
@@ -24,5 +29,19 @@ return [
     ],
     '@hotwired/turbo' => [
         'version' => '7.3.0',
+    ],
+    // React runtime (resolved via JSPM CDN by ImportMap)
+    'react' => [
+        'version' => '18.2.0',
+    ],
+    'react-dom/client' => [
+        'version' => '18.2.0',
+    ],
+    'react-dom' => [
+        'version' => '18.2.0',
+    ],
+    // React runtime dependency required by react-dom ESM
+    'scheduler' => [
+        'version' => '0.23.0',
     ],
 ];

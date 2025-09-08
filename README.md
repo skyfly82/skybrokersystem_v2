@@ -1,10 +1,10 @@
-# SkyBrokerSystem v2
+# Sky
 
 Modern courier brokerage platform built with Symfony 7.x and modern PHP practices.
 
 ## Project Overview
 
-This is a complete rewrite of the original Laravel-based SkyBrokerSystem, now built on:
+This is a complete rewrite of the original Laravel-based system, now built on:
 - **Symfony 7.x** - Modern PHP framework
 - **Doctrine ORM** - Enterprise-grade data management
 - **API-First Architecture** - RESTful APIs with OpenAPI documentation
