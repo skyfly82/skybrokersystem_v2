@@ -101,15 +101,28 @@
             try{
                 const endpoint = utype==='customer'? `${API_BASE}/customer/login` : `${API_BASE}/system/login`;
                 const r = await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,password})});
-                const ct = r.headers.get('content-type')||''; if(!ct.includes('json')) throw new Error('Zła odpowiedź');
-                const data = await r.json();
+                const ct = r.headers.get('content-type')||'';
+                let data;
+                if(ct.includes('json')){
+                    data = await r.json();
+                } else {
+                    const txt = await r.text();
+                    data = { success:false, message: txt || r.statusText };
+                }
                 if(r.ok && data.success){
                     localStorage.setItem('jwt_token', data.token);
                     localStorage.setItem('user_type', utype);
                     localStorage.setItem('user_data', JSON.stringify(data.user));
                     location.href = '/dashboard?type='+utype;
                 } else {
-                    err.textContent = data.message || 'Błędne dane logowania'; err.style.display='block';
+                    const retry = r.headers.get('Retry-After');
+                    const rl = r.headers.get('X-RateLimit-Remaining');
+                    if(r.status === 429){
+                        err.textContent = `Za dużo prób logowania. Spróbuj ponownie za ${retry || 'kilka'} s.`;
+                    } else {
+                        err.textContent = data.message || 'Błędne dane logowania';
+                    }
+                    err.style.display='block';
                 }
             }catch(ex){ err.textContent = 'Błąd połączenia: '+ex.message; err.style.display='block'; }
         });

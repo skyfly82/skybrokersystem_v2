@@ -34,7 +34,7 @@ final class Version20250909150000 extends AbstractMigration
             code VARCHAR(10) NOT NULL COMMENT "Unique zone code (LOCAL, NAT_PL, EU, WORLD)",
             name VARCHAR(100) NOT NULL COMMENT "Human-readable zone name",
             description TEXT DEFAULT NULL COMMENT "Detailed zone description",
-            zone_type ENUM("local", "national", "international") NOT NULL COMMENT "Zone classification",
+            zone_type VARCHAR(20) NOT NULL COMMENT "Zone classification",
             countries JSON DEFAULT NULL COMMENT "List of ISO country codes in this zone",
             postal_code_patterns JSON DEFAULT NULL COMMENT "Postal code patterns for automatic zone detection",
             is_active BOOLEAN NOT NULL DEFAULT TRUE COMMENT "Whether zone is currently active",
@@ -129,7 +129,7 @@ final class Version20250909150000 extends AbstractMigration
             description TEXT DEFAULT NULL COMMENT "Service description",
             
             -- Pricing structure
-            pricing_type ENUM("fixed", "percentage", "tiered") NOT NULL COMMENT "How the service is priced",
+            pricing_type VARCHAR(20) NOT NULL COMMENT "How the service is priced",
             fixed_price DECIMAL(10,2) DEFAULT NULL COMMENT "Fixed price for the service",
             percentage_rate DECIMAL(5,2) DEFAULT NULL COMMENT "Percentage of shipment value",
             min_charge DECIMAL(10,2) DEFAULT NULL COMMENT "Minimum charge for percentage-based pricing",
@@ -164,7 +164,7 @@ final class Version20250909150000 extends AbstractMigration
             contract_number VARCHAR(100) DEFAULT NULL COMMENT "Contract reference number",
             
             -- Discount structure
-            discount_type ENUM("percentage", "fixed_amount", "custom_rates") NOT NULL COMMENT "Type of discount applied",
+            discount_type VARCHAR(30) NOT NULL COMMENT "Type of discount applied",
             discount_percentage DECIMAL(5,2) DEFAULT NULL COMMENT "Percentage discount from base rates",
             fixed_discount_amount DECIMAL(10,2) DEFAULT NULL COMMENT "Fixed amount discount per shipment",
             
@@ -214,10 +214,10 @@ final class Version20250909150000 extends AbstractMigration
             applies_to_zones JSON DEFAULT NULL COMMENT "Zone IDs this promotion applies to", 
             applies_to_services JSON DEFAULT NULL COMMENT "Service types this promotion applies to",
             applies_to_customers JSON DEFAULT NULL COMMENT "Specific customer IDs (NULL = all customers)",
-            customer_type ENUM("all", "b2b", "b2c", "new_customers") DEFAULT "all" COMMENT "Customer type eligibility",
+            customer_type VARCHAR(20) DEFAULT "all" COMMENT "Customer type eligibility",
             
             -- Discount structure
-            discount_type ENUM("percentage", "fixed_amount", "free_service") NOT NULL COMMENT "Type of discount",
+            discount_type VARCHAR(20) NOT NULL COMMENT "Type of discount",
             discount_value DECIMAL(10,2) NOT NULL COMMENT "Discount percentage or fixed amount",
             applies_to_service VARCHAR(50) DEFAULT NULL COMMENT "Which part of pricing (base, additional_service_code)",
             max_discount_amount DECIMAL(10,2) DEFAULT NULL COMMENT "Maximum discount amount per shipment",
@@ -280,7 +280,7 @@ final class Version20250909150000 extends AbstractMigration
             id INT AUTO_INCREMENT NOT NULL,
             name VARCHAR(100) NOT NULL COMMENT "Rule name",
             description TEXT DEFAULT NULL COMMENT "Rule description",
-            rule_type ENUM("weight_adjustment", "dimension_check", "zone_restriction", "service_compatibility", "minimum_charge", "surcharge") NOT NULL COMMENT "Type of pricing rule",
+            rule_type VARCHAR(30) NOT NULL COMMENT "Type of pricing rule",
             
             -- Rule configuration
             applies_to_carriers JSON DEFAULT NULL COMMENT "Carrier IDs this rule applies to",
@@ -291,7 +291,7 @@ final class Version20250909150000 extends AbstractMigration
             rule_config JSON NOT NULL COMMENT "Rule configuration and parameters",
             
             -- Rule actions
-            action_type ENUM("reject", "surcharge", "modify_price", "add_service", "warning") NOT NULL COMMENT "Action to take when rule triggers",
+            action_type VARCHAR(20) NOT NULL COMMENT "Action to take when rule triggers",
             action_config JSON DEFAULT NULL COMMENT "Action configuration parameters",
             
             -- Priority and status
@@ -317,7 +317,7 @@ final class Version20250909150000 extends AbstractMigration
             -- What was changed
             table_name VARCHAR(50) NOT NULL COMMENT "Table that was modified",
             record_id INT NOT NULL COMMENT "ID of the modified record",
-            action ENUM("INSERT", "UPDATE", "DELETE") NOT NULL COMMENT "Type of action performed",
+            action VARCHAR(10) NOT NULL COMMENT "Type of action performed",
             
             -- Change details
             field_name VARCHAR(100) DEFAULT NULL COMMENT "Specific field that was changed (for updates)",

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Entity;
+namespace App\Domain\Pricing\Entity;
 
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
@@ -16,7 +16,7 @@ use Symfony\Component\Validator\Constraints as Assert;
  * Defines geographic zones used to categorize shipping destinations
  * and apply different pricing structures based on location.
  */
-#[ORM\Entity]
+#[ORM\Entity(repositoryClass: \App\Domain\Pricing\Repository\PricingZoneRepository::class)]
 #[ORM\Table(name: 'v2_pricing_zones')]
 #[ORM\Index(name: 'IDX_ZONE_TYPE', columns: ['zone_type'])]
 #[ORM\Index(name: 'IDX_ZONE_ACTIVE', columns: ['is_active'])]
@@ -46,7 +46,7 @@ class PricingZone
     #[ORM\Column(type: Types::TEXT, nullable: true)]
     private ?string $description = null;
 
-    #[ORM\Column(type: Types::STRING, enumType: self::class)]
+    #[ORM\Column(length: 20)]
     #[Assert\Choice(choices: [self::ZONE_TYPE_LOCAL, self::ZONE_TYPE_NATIONAL, self::ZONE_TYPE_INTERNATIONAL])]
     private string $zoneType;
 
@@ -68,11 +68,11 @@ class PricingZone
     #[ORM\Column(type: Types::INTEGER, options: ['default' => 0])]
     private int $sortOrder = 0;
 
-    #[ORM\Column(type: Types::DATETIME_MUTABLE)]
-    private \DateTimeInterface $createdAt;
+    #[ORM\Column(type: Types::DATETIME_IMMUTABLE)]
+    private \DateTimeImmutable $createdAt;
 
-    #[ORM\Column(type: Types::DATETIME_MUTABLE, nullable: true)]
-    private ?\DateTimeInterface $updatedAt = null;
+    #[ORM\Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
+    private ?\DateTimeImmutable $updatedAt = null;
 
     /**
      * @var Collection<int, PricingTable>
@@ -80,10 +80,13 @@ class PricingZone
     #[ORM\OneToMany(mappedBy: 'zone', targetEntity: PricingTable::class)]
     private Collection $pricingTables;
 
-    public function __construct()
+    public function __construct(string $code, string $name, string $zoneType)
     {
         $this->pricingTables = new ArrayCollection();
-        $this->createdAt = new \DateTime();
+        $this->createdAt = new \DateTimeImmutable();
+        $this->code = strtoupper($code);
+        $this->name = $name;
+        $this->setZoneType($zoneType);
     }
 
     public function getId(): ?int
@@ -188,6 +191,7 @@ class PricingZone
     public function setIsActive(bool $isActive): static
     {
         $this->isActive = $isActive;
+        $this->updateTimestamp();
         return $this;
     }
 
@@ -202,32 +206,19 @@ class PricingZone
         return $this;
     }
 
-    public function getCreatedAt(): \DateTimeInterface
+    public function getCreatedAt(): \DateTimeImmutable
     {
         return $this->createdAt;
     }
 
-    public function setCreatedAt(\DateTimeInterface $createdAt): static
-    {
-        $this->createdAt = $createdAt;
-        return $this;
-    }
-
-    public function getUpdatedAt(): ?\DateTimeInterface
+    public function getUpdatedAt(): ?\DateTimeImmutable
     {
         return $this->updatedAt;
     }
 
-    public function setUpdatedAt(?\DateTimeInterface $updatedAt): static
+    private function updateTimestamp(): void
     {
-        $this->updatedAt = $updatedAt;
-        return $this;
-    }
-
-    #[ORM\PreUpdate]
-    public function updateTimestamp(): void
-    {
-        $this->updatedAt = new \DateTime();
+        $this->updatedAt = new \DateTimeImmutable();
     }
 
     /**

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Entity;
+namespace App\Domain\Pricing\Entity;
 
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
@@ -13,7 +13,7 @@ use Symfony\Component\Validator\Constraints as Assert;
 /**
  * Courier service providers with their capabilities and configurations
  */
-#[ORM\Entity]
+#[ORM\Entity(repositoryClass: \App\Domain\Pricing\Repository\CarrierRepository::class)]
 #[ORM\Table(name: 'v2_carriers')]
 #[ORM\Index(name: 'IDX_CARRIER_ACTIVE', columns: ['is_active'])]
 #[ORM\Index(name: 'IDX_CARRIER_SORT', columns: ['sort_order'])]
@@ -67,7 +67,7 @@ class Carrier
 
     #[ORM\Column(type: Types::DECIMAL, precision: 8, scale: 3, nullable: true)]
     #[Assert\PositiveOrZero]
-    private ?float $maxWeightKg = null;
+    private ?string $maxWeightKg = null;
 
     /**
      * Maximum dimensions [length, width, height] in cm
@@ -81,11 +81,11 @@ class Carrier
     #[ORM\Column(type: Types::INTEGER, options: ['default' => 0])]
     private int $sortOrder = 0;
 
-    #[ORM\Column(type: Types::DATETIME_MUTABLE)]
-    private \DateTimeInterface $createdAt;
+    #[ORM\Column(type: Types::DATETIME_IMMUTABLE)]
+    private \DateTimeImmutable $createdAt;
 
-    #[ORM\Column(type: Types::DATETIME_MUTABLE, nullable: true)]
-    private ?\DateTimeInterface $updatedAt = null;
+    #[ORM\Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
+    private ?\DateTimeImmutable $updatedAt = null;
 
     /**
      * @var Collection<int, PricingTable>
@@ -99,11 +99,13 @@ class Carrier
     #[ORM\OneToMany(mappedBy: 'carrier', targetEntity: AdditionalService::class)]
     private Collection $additionalServices;
 
-    public function __construct()
+    public function __construct(string $code, string $name)
     {
         $this->pricingTables = new ArrayCollection();
         $this->additionalServices = new ArrayCollection();
-        $this->createdAt = new \DateTime();
+        $this->createdAt = new \DateTimeImmutable();
+        $this->code = strtoupper($code);
+        $this->name = $name;
     }
 
     public function getId(): ?int
@@ -119,6 +121,7 @@ class Carrier
     public function setCode(string $code): static
     {
         $this->code = strtoupper($code);
+        $this->updateTimestamp();
         return $this;
     }
 
@@ -130,6 +133,7 @@ class Carrier
     public function setName(string $name): static
     {
         $this->name = $name;
+        $this->updateTimestamp();
         return $this;
     }
 
@@ -141,6 +145,7 @@ class Carrier
     public function setLogoUrl(?string $logoUrl): static
     {
         $this->logoUrl = $logoUrl;
+        $this->updateTimestamp();
         return $this;
     }
 
@@ -152,6 +157,7 @@ class Carrier
     public function setApiEndpoint(?string $apiEndpoint): static
     {
         $this->apiEndpoint = $apiEndpoint;
+        $this->updateTimestamp();
         return $this;
     }
 
@@ -163,6 +169,7 @@ class Carrier
     public function setApiConfig(?array $apiConfig): static
     {
         $this->apiConfig = $apiConfig;
+        $this->updateTimestamp();
         return $this;
     }
 
@@ -177,6 +184,7 @@ class Carrier
             $this->apiConfig = [];
         }
         $this->apiConfig[$key] = $value;
+        $this->updateTimestamp();
         return $this;
     }
 
@@ -188,6 +196,7 @@ class Carrier
     public function setDefaultServiceType(?string $defaultServiceType): static
     {
         $this->defaultServiceType = $defaultServiceType;
+        $this->updateTimestamp();
         return $this;
     }
 
@@ -199,6 +208,7 @@ class Carrier
     public function setSupportedZones(array $supportedZones): static
     {
         $this->supportedZones = $supportedZones;
+        $this->updateTimestamp();
         return $this;
     }
 
@@ -211,6 +221,7 @@ class Carrier
     {
         if (!$this->supportsZone($zoneCode)) {
             $this->supportedZones[] = $zoneCode;
+            $this->updateTimestamp();
         }
         return $this;
     }
@@ -218,23 +229,30 @@ class Carrier
     public function removeSupportedZone(string $zoneCode): static
     {
         $this->supportedZones = array_filter($this->supportedZones, fn($zone) => $zone !== $zoneCode);
+        $this->updateTimestamp();
         return $this;
     }
 
-    public function getMaxWeightKg(): ?float
+    public function getMaxWeightKg(): ?string
     {
         return $this->maxWeightKg;
     }
 
-    public function setMaxWeightKg(?float $maxWeightKg): static
+    public function setMaxWeightKg(?string $maxWeightKg): static
     {
         $this->maxWeightKg = $maxWeightKg;
+        $this->updateTimestamp();
         return $this;
+    }
+
+    public function getMaxWeightKgFloat(): ?float
+    {
+        return $this->maxWeightKg ? (float)$this->maxWeightKg : null;
     }
 
     public function canHandleWeight(float $weightKg): bool
     {
-        return $this->maxWeightKg === null || $weightKg <= $this->maxWeightKg;
+        return $this->maxWeightKg === null || $weightKg <= (float)$this->maxWeightKg;
     }
 
     public function getMaxDimensionsCm(): ?array
@@ -245,6 +263,7 @@ class Carrier
     public function setMaxDimensionsCm(?array $maxDimensionsCm): static
     {
         $this->maxDimensionsCm = $maxDimensionsCm;
+        $this->updateTimestamp();
         return $this;
     }
 
@@ -282,6 +301,7 @@ class Carrier
     public function setIsActive(bool $isActive): static
     {
         $this->isActive = $isActive;
+        $this->updateTimestamp();
         return $this;
     }
 
@@ -293,35 +313,23 @@ class Carrier
     public function setSortOrder(int $sortOrder): static
     {
         $this->sortOrder = $sortOrder;
+        $this->updateTimestamp();
         return $this;
     }
 
-    public function getCreatedAt(): \DateTimeInterface
+    public function getCreatedAt(): \DateTimeImmutable
     {
         return $this->createdAt;
     }
 
-    public function setCreatedAt(\DateTimeInterface $createdAt): static
-    {
-        $this->createdAt = $createdAt;
-        return $this;
-    }
-
-    public function getUpdatedAt(): ?\DateTimeInterface
+    public function getUpdatedAt(): ?\DateTimeImmutable
     {
         return $this->updatedAt;
     }
 
-    public function setUpdatedAt(?\DateTimeInterface $updatedAt): static
+    private function updateTimestamp(): void
     {
-        $this->updatedAt = $updatedAt;
-        return $this;
-    }
-
-    #[ORM\PreUpdate]
-    public function updateTimestamp(): void
-    {
-        $this->updatedAt = new \DateTime();
+        $this->updatedAt = new \DateTimeImmutable();
     }
 
     /**

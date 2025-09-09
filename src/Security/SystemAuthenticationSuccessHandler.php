@@ -35,7 +35,8 @@ class SystemAuthenticationSuccessHandler implements AuthenticationSuccessHandler
             $this->logger->info('System user login successful', [
                 'user_id' => $user->getId(),
                 'email' => $user->getEmail(),
-                'role' => $user->getRole(),
+                'department' => $user->getDepartment(),
+                'roles' => $user->getRoles(),
                 'ip' => $request->getClientIp()
             ]);
             
@@ -50,7 +51,6 @@ class SystemAuthenticationSuccessHandler implements AuthenticationSuccessHandler
                     'fullName' => $user->getFullName(),
                     'department' => $user->getDepartment(),
                     'position' => $user->getPosition(),
-                    'role' => $user->getRole(),
                     'status' => $user->getStatus(),
                     'roles' => $user->getRoles()
                 ],

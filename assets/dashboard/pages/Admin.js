@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import StatCard from '../components/StatCard.jsx';
+import StatCard from '../components/StatCard.js';
 import { api } from '../services/api.js';
 
 export default function Admin({ token, user, current, addToast }) {
@@ -86,3 +86,4 @@ const styles = {
   td: { padding: 10 },
   btn: { border: '1px solid var(--border)', background: '#fff', borderRadius: 10, padding: '10px 12px', fontWeight: 700, cursor: 'pointer' }
 };
+

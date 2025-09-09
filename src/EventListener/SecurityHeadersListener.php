@@ -27,10 +27,22 @@ class SecurityHeadersListener
         // Content Security Policy - strict for API endpoints
         $request = $event->getRequest();
         if (str_starts_with($request->getPathInfo(), '/api/')) {
+            // Strict CSP for API responses (no scripts/styles needed)
             $headers->set('Content-Security-Policy', "default-src 'none'; script-src 'none'; object-src 'none'; style-src 'none'; img-src 'none'; media-src 'none'; frame-src 'none'; font-src 'none'; connect-src 'self'");
         } else {
-            // More permissive CSP for web pages
-            $headers->set('Content-Security-Policy', "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self'");
+            // Web pages: align with ImportMap and Google Fonts usage
+            $headers->set('Content-Security-Policy', implode('; ', [
+                "default-src 'self'",
+                "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://ga.jspm.io",
+                "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+                "img-src 'self' data: https:",
+                "font-src 'self' data: https: https://fonts.gstatic.com",
+                "connect-src 'self' https:",
+                "object-src 'none'",
+                "frame-ancestors 'none'",
+                "base-uri 'self'",
+                "form-action 'self'"
+            ]));
         }
         
         // HSTS - only in production

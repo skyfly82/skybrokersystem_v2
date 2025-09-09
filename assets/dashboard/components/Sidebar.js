@@ -43,3 +43,4 @@ const styles = {
   item: { textAlign: 'left', border: '1px solid var(--border)', background: '#fff', color: 'var(--ink)', padding: '10px 12px', borderRadius: 10, cursor: 'pointer', fontWeight: 600 },
   itemActive: { borderColor: 'var(--primary-600)', color: 'var(--primary-600)', boxShadow: '0 0 0 4px var(--primary-50)' }
 };
+

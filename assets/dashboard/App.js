@@ -1,11 +1,11 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import Topbar from './components/Topbar.jsx';
-import Sidebar from './components/Sidebar.jsx';
-import ToastCenter from './components/ToastCenter.jsx';
+import Topbar from './components/Topbar.js';
+import Sidebar from './components/Sidebar.js';
+import ToastCenter from './components/ToastCenter.js';
 import { api } from './services/api.js';
 import { useNotifications } from './hooks/useNotifications.js';
-import Admin from './pages/Admin.jsx';
-import Customer from './pages/Customer.jsx';
+import Admin from './pages/Admin.js';
+import Customer from './pages/Customer.js';
 
 const Layout = ({ children, user, userType, onLogout, onNavigate, current }) => (
   React.createElement('div', { className: 'dash-root', style: styles.root },
@@ -28,7 +28,8 @@ export default function App() {
   useEffect(() => {
     const t = localStorage.getItem('jwt_token');
     if (!t) {
-      window.location.href = '/auth';
+      // Redirect to the public web homepage if not authenticated
+      window.location.href = '/web';
       return;
     }
     setToken(t);
@@ -64,7 +65,8 @@ export default function App() {
       localStorage.removeItem('user_type');
       localStorage.removeItem('user_data');
     } catch (e) {}
-    window.location.href = '/auth';
+    // Redirect to the public web homepage after logout
+    window.location.href = '/web';
   };
 
   const onNavigate = (key) => setCurrent(key);

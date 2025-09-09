@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import StatCard from '../components/StatCard.jsx';
+import StatCard from '../components/StatCard.js';
 import { api } from '../services/api.js';
 
 export default function Customer({ token, user, current, addToast }) {
@@ -96,3 +96,4 @@ const sampleOrders = [
 function formatAmount(a) {
   try { return new Intl.NumberFormat('pl-PL', { style: 'currency', currency: 'PLN' }).format(a); } catch { return `${a} PLN`; }
 }
+
