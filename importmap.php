@@ -21,6 +21,11 @@ return [
         'path' => './assets/web/main.js',
         'entrypoint' => true,
     ],
+    // Modern dashboards (admin & customer)
+    'dashboard' => [
+        'path' => './assets/dashboard/main.js',
+        'entrypoint' => true,
+    ],
     '@hotwired/stimulus' => [
         'version' => '3.2.2',
     ],
