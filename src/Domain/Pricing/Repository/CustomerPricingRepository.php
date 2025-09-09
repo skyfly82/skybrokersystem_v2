@@ -39,6 +39,27 @@ class CustomerPricingRepository extends ServiceEntityRepository
     }
 
     /**
+     * Find active pricing for customer and carrier
+     */
+    public function findActiveByCustomerAndCarrier(int $customerId, string $carrierCode): ?CustomerPricing
+    {
+        return $this->createQueryBuilder('cp')
+            ->join('cp.basePricingTable', 'pt')
+            ->join('pt.carrier', 'c')
+            ->where('cp.customer = :customerId')
+            ->andWhere('c.code = :carrierCode')
+            ->andWhere('cp.isActive = true')
+            ->andWhere('cp.effectiveFrom <= CURRENT_TIMESTAMP()')
+            ->andWhere('cp.effectiveUntil IS NULL OR cp.effectiveUntil >= CURRENT_TIMESTAMP()')
+            ->setParameter('customerId', $customerId)
+            ->setParameter('carrierCode', $carrierCode)
+            ->orderBy('cp.priorityLevel', 'DESC')
+            ->setMaxResults(1)
+            ->getQuery()
+            ->getOneOrNullResult();
+    }
+
+    /**
      * Find all active pricing for customer
      *
      * @return CustomerPricing[]
@@ -54,6 +75,16 @@ class CustomerPricingRepository extends ServiceEntityRepository
             ->orderBy('cp.priorityLevel', 'DESC')
             ->getQuery()
             ->getResult();
+    }
+
+    /**
+     * Alias for findActiveByCustomer - for interface compatibility
+     *
+     * @return CustomerPricing[]
+     */
+    public function findActiveForCustomer(Customer $customer): array
+    {
+        return $this->findActiveByCustomer($customer);
     }
 
     /**

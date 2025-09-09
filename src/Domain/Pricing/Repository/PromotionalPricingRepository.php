@@ -40,6 +40,48 @@ class PromotionalPricingRepository extends ServiceEntityRepository
     }
 
     /**
+     * Find active promotions by carrier and optional customer/promo codes
+     *
+     * @return PromotionalPricing[]
+     */
+    public function findActivePromotions(string $carrierCode, ?int $customerId = null, ?array $promoCodes = null): array
+    {
+        $qb = $this->createQueryBuilder('pp')
+            ->leftJoin('pp.customerPricing', 'cp')
+            ->leftJoin('cp.basePricingTable', 'pt')
+            ->leftJoin('pt.carrier', 'c')
+            ->where('pp.isActive = true')
+            ->andWhere('pp.validFrom <= CURRENT_TIMESTAMP()')
+            ->andWhere('pp.validUntil >= CURRENT_TIMESTAMP()')
+            ->andWhere(
+                $qb->expr()->orX(
+                    'pp.customerPricing IS NULL', // Global promotions
+                    'c.code = :carrierCode' // Carrier-specific promotions
+                )
+            )
+            ->setParameter('carrierCode', $carrierCode);
+
+        if ($customerId !== null) {
+            $qb->andWhere(
+                $qb->expr()->orX(
+                    'pp.customerPricing IS NULL', // Global promotions available to all
+                    'cp.customer = :customerId' // Customer-specific promotions
+                )
+            )
+            ->setParameter('customerId', $customerId);
+        }
+
+        if ($promoCodes !== null && !empty($promoCodes)) {
+            $qb->andWhere('pp.promoCode IN (:promoCodes)')
+               ->setParameter('promoCodes', $promoCodes);
+        }
+
+        return $qb->orderBy('pp.priorityLevel', 'DESC')
+                  ->getQuery()
+                  ->getResult();
+    }
+
+    /**
      * Find promotion by code
      */
     public function findByCode(string $promoCode): ?PromotionalPricing
@@ -67,6 +109,23 @@ class PromotionalPricingRepository extends ServiceEntityRepository
             ->andWhere('pp.isActive = true')
             ->andWhere('pp.validFrom <= CURRENT_TIMESTAMP()')
             ->andWhere('pp.validUntil >= CURRENT_TIMESTAMP()')
+            ->orderBy('pp.priorityLevel', 'DESC')
+            ->getQuery()
+            ->getResult();
+    }
+
+    /**
+     * Find all active promotions at given date
+     *
+     * @return PromotionalPricing[]
+     */
+    public function findActivePromotions(\DateTimeInterface $date): array
+    {
+        return $this->createQueryBuilder('pp')
+            ->where('pp.isActive = true')
+            ->andWhere('pp.validFrom <= :date OR pp.validFrom IS NULL')
+            ->andWhere('pp.validUntil >= :date OR pp.validUntil IS NULL')
+            ->setParameter('date', $date)
             ->orderBy('pp.priorityLevel', 'DESC')
             ->getQuery()
             ->getResult();
