@@ -88,3 +88,87 @@ services:
             - '@monolog.logger'
         tags:
             - { name: 'monolog.logger', channel: 'inpost' }
+
+    # PayNow Payment Services
+    App\Domain\Payment\Contracts\PayNowServiceInterface:
+        alias: App\Domain\Payment\Service\PayNowService
+
+    App\Domain\Payment\Service\PayNowService:
+        arguments:
+            $httpClient: '@http_client'
+            $logger: '@monolog.logger'
+            $environment: '%env(PAYNOW_ENVIRONMENT)%'
+            $apiKey: '%env(PAYNOW_API_KEY)%'
+            $signatureKey: '%env(PAYNOW_SIGNATURE_KEY)%'
+            $enabled: '%env(bool:PAYNOW_ENABLED)%'
+        tags:
+            - { name: 'monolog.logger', channel: 'paynow' }
+            - { name: 'payment.service', alias: 'paynow' }
+
+    App\Domain\Payment\Service\PayNowPaymentHandler:
+        arguments:
+            - '@App\Domain\Payment\Contracts\PayNowServiceInterface'
+            - '@doctrine.orm.entity_manager'
+            - '@monolog.logger'
+            - '@router'
+        tags:
+            - { name: 'monolog.logger', channel: 'paynow' }
+
+    # Credit Payment Services
+    App\Domain\Payment\Contracts\CreditServiceInterface:
+        alias: App\Domain\Payment\Service\CreditService
+
+    App\Domain\Payment\Service\CreditService:
+        arguments:
+            - '@App\Domain\Payment\Repository\CreditAccountRepository'
+            - '@App\Domain\Payment\Repository\CreditTransactionRepository'
+            - '@doctrine.orm.entity_manager'
+            - '@monolog.logger'
+            - '%env(bool:CREDIT_ENABLED)%'
+        tags:
+            - { name: 'monolog.logger', channel: 'credit' }
+            - { name: 'payment.service', alias: 'credit' }
+
+    App\Domain\Payment\Service\CreditPaymentHandler:
+        arguments:
+            - '@App\Domain\Payment\Contracts\CreditServiceInterface'
+            - '@doctrine.orm.entity_manager'
+            - '@monolog.logger'
+            - '@router'
+        tags:
+            - { name: 'monolog.logger', channel: 'credit' }
+
+    # Wallet Payment Services
+    App\Domain\Payment\Contracts\WalletServiceInterface:
+        alias: App\Domain\Payment\Service\WalletService
+
+    App\Domain\Payment\Service\WalletService:
+        arguments:
+            - '@App\Domain\Payment\Repository\WalletRepository'
+            - '@App\Domain\Payment\Repository\WalletTransactionRepository'
+            - '@doctrine.orm.entity_manager'
+            - '@monolog.logger'
+            - '%env(bool:WALLET_ENABLED)%'
+        tags:
+            - { name: 'monolog.logger', channel: 'wallet' }
+            - { name: 'payment.service', alias: 'wallet' }
+
+    App\Domain\Payment\Service\WalletPaymentHandler:
+        arguments:
+            - '@App\Domain\Payment\Contracts\WalletServiceInterface'
+            - '@App\Domain\Payment\Repository\PaymentRepository'
+            - '@doctrine.orm.entity_manager'
+            - '@monolog.logger'
+        tags:
+            - { name: 'monolog.logger', channel: 'wallet' }
+
+    # Main Payment Handler (coordinates all payment methods)
+    App\Domain\Payment\Service\PaymentHandler:
+        arguments:
+            - '@App\Domain\Payment\Service\PayNowPaymentHandler'
+            - '@App\Domain\Payment\Service\CreditPaymentHandler'
+            - '@App\Domain\Payment\Service\WalletPaymentHandler'
+            - '@doctrine.orm.entity_manager'
+            - '@monolog.logger'
+        tags:
+            - { name: 'monolog.logger', channel: 'payment' }

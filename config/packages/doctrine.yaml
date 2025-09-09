@@ -25,6 +25,12 @@ doctrine:
                 dir: '%kernel.project_dir%/src/Entity'
                 prefix: 'App\Entity'
                 alias: App
+            PaymentDomain:
+                type: attribute
+                is_bundle: false
+                dir: '%kernel.project_dir%/src/Domain/Payment/Entity'
+                prefix: 'App\Domain\Payment\Entity'
+                alias: PaymentDomain
         controller_resolver:
             auto_mapping: false
 
