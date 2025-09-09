@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="utf-8">
+  <title>Analytics & Reporting</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="preconnect" href="https://cdn.jsdelivr.net">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <style>
+    body{font-family: system-ui,-apple-system,Segoe UI,Roboto,Ubuntu; margin:20px}
+    .grid{display:grid; grid-template-columns: repeat(auto-fit,minmax(300px,1fr)); gap:24px}
+    .card{border:1px solid #ddd; border-radius:12px; padding:16px}
+    header{display:flex; justify-content:space-between; align-items:center; margin-bottom:16px}
+    h1{font-size:20px; margin:0}
+    table{width:100%; border-collapse:collapse}
+    th,td{padding:8px; border-bottom:1px solid #eee; text-align:left}
+    code{background:#f6f8fa; padding:2px 4px; border-radius:6px}
+  </style>
+  <script>
+    async function loadSummary(){
+      const qs = new URLSearchParams();
+      const from = document.getElementById('from').value; if(from) qs.set('from', from);
+      const to = document.getElementById('to').value; if(to) qs.set('to', to);
+      const r = await fetch('/api/analytics/summary' + (qs.toString()?('?'+qs.toString()):''));
+      const data = await r.json();
+      document.getElementById('totalShipments').textContent = data.shipments.total_shipments ?? '—';
+      renderEndpointTable(data.endpoints || []);
+      renderEventChart(data.events || {});
+      renderCarrierChart(data.shipments || {});
+    }
+    function renderEndpointTable(rows){
+      const tb = document.querySelector('#endpoints tbody');
+      tb.innerHTML = '';
+      rows.forEach(r=>{
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td><code>${r.endpoint}</code></td><td>${r.hits}</td><td>${(r.avgDuration|0)} ms</td><td>${(r.maxDuration|0)} ms</td>`;
+        tb.appendChild(tr);
+      });
+    }
+    function renderEventChart(events){
+      const labels = Object.keys(events);
+      const values = Object.values(events);
+      const ctx = document.getElementById('eventsChart');
+      new Chart(ctx, { type: 'doughnut', data: { labels, datasets: [{ data: values, backgroundColor:["#1f77b4","#ff7f0e","#2ca02c","#d62728","#9467bd"] }] }, options: { plugins:{ legend:{ position:'bottom'} } } });
+    }
+    function renderCarrierChart(ship){
+      const labels = ['InPost','DHL'];
+      const values = [ship.inpost_shipments||0, ship.dhl_shipments||0];
+      const ctx = document.getElementById('carrierChart');
+      new Chart(ctx, { type:'bar', data:{ labels, datasets:[{ label:'Shipments', data: values, backgroundColor:['#1f77b4','#ff7f0e'] }] }, options:{ plugins:{legend:{display:false}} } });
+    }
+    addEventListener('DOMContentLoaded', ()=>{ loadSummary(); document.getElementById('apply').addEventListener('click', loadSummary); });
+  </script>
+</head>
+<body>
+  <header>
+    <h1>Analytics & Reporting</h1>
+    <div>
+      <input type="date" id="from" />
+      <input type="date" id="to" />
+      <button id="apply">Zastosuj</button>
+    </div>
+  </header>
+  <div class="grid">
+    <section class="card">
+      <h3>Shipments</h3>
+      <div style="font-size:36px;font-weight:700" id="totalShipments">…</div>
+      <div style="color:#555">Total shipments (cached 5 min)</div>
+    </section>
+    <section class="card">
+      <h3>Events</h3>
+      <canvas id="eventsChart" width="300" height="300"></canvas>
+    </section>
+    <section class="card">
+      <h3>Shipments by carrier</h3>
+      <canvas id="carrierChart" width="300" height="300"></canvas>
+    </section>
+  </div>
+
+  <section class="card" style="margin-top:24px">
+    <h3>Top API endpoints</h3>
+    <table id="endpoints">
+      <thead><tr><th>Endpoint</th><th>Hits</th><th>Avg</th><th>Max</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </section>
+</body>
+</html>

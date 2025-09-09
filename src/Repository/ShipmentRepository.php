@@ -135,12 +135,12 @@ class ShipmentRepository extends ServiceEntityRepository
         $qb = $this->createQueryBuilder('s')
             ->select('
                 COUNT(s.id) as total_shipments,
-                COUNT(CASE WHEN s.status = \'created\' THEN 1 END) as created_shipments,
-                COUNT(CASE WHEN s.status = \'dispatched\' THEN 1 END) as dispatched_shipments,
-                COUNT(CASE WHEN s.status = \'delivered\' THEN 1 END) as delivered_shipments,
-                COUNT(CASE WHEN s.status = \'canceled\' THEN 1 END) as canceled_shipments,
-                COUNT(CASE WHEN s.courierService = \'inpost\' THEN 1 END) as inpost_shipments,
-                COUNT(CASE WHEN s.courierService = \'dhl\' THEN 1 END) as dhl_shipments,
+                SUM(CASE WHEN s.status = \'created\' THEN 1 ELSE 0 END) as created_shipments,
+                SUM(CASE WHEN s.status = \'dispatched\' THEN 1 ELSE 0 END) as dispatched_shipments,
+                SUM(CASE WHEN s.status = \'delivered\' THEN 1 ELSE 0 END) as delivered_shipments,
+                SUM(CASE WHEN s.status = \'canceled\' THEN 1 ELSE 0 END) as canceled_shipments,
+                SUM(CASE WHEN s.courierService = \'inpost\' THEN 1 ELSE 0 END) as inpost_shipments,
+                SUM(CASE WHEN s.courierService = \'dhl\' THEN 1 ELSE 0 END) as dhl_shipments,
                 SUM(s.shippingCost) as total_shipping_cost,
                 AVG(s.totalWeight) as average_weight
             ');

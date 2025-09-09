@@ -1,0 +1,11 @@
+when@prod:
+    sentry:
+        dsn: '%env(SENTRY_DSN)%'
+        options:
+            traces_sample_rate: '%env(float:SENTRY_TRACES_SAMPLE_RATE)%'
+        register_error_listener: true
+        register_error_handler: true
+        monolog:
+            enabled: true
+            level: error
+

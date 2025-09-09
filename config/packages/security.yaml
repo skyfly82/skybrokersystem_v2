@@ -58,8 +58,8 @@ security:
             lazy: true
             provider: customer_users
             form_login:
-                login_path: login
-                check_path: login
+                login_path: app_login_web
+                check_path: app_login_web
             logout:
                 path: logout
 

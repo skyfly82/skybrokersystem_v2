@@ -2,6 +2,9 @@ monolog:
     channels:
         - deprecation # Deprecations are logged in the dedicated "deprecation" channel when it exists
         - security    # Security events channel
+        - analytics
+        - cms
+        - performance
 
 when@dev:
     monolog:
@@ -11,6 +14,22 @@ when@dev:
                 path: "%kernel.logs_dir%/%kernel.environment%.log"
                 level: debug
                 channels: ["!event", "!security"]
+            analytics:
+                type: stream
+                path: "%kernel.logs_dir%/analytics.log"
+                level: info
+                channels: ["analytics"]
+                formatter: monolog.formatter.json
+            cms:
+                type: stream
+                path: "%kernel.logs_dir%/cms.log"
+                level: info
+                channels: ["cms"]
+            performance:
+                type: stream
+                path: "%kernel.logs_dir%/performance.log"
+                level: info
+                channels: ["performance"]
             security:
                 type: stream
                 path: "%kernel.logs_dir%/security.log"
@@ -57,6 +76,24 @@ when@prod:
                 type: stream
                 path: php://stderr
                 level: debug
+                formatter: monolog.formatter.json
+            analytics:
+                type: stream
+                path: php://stderr
+                level: info
+                channels: ["analytics"]
+                formatter: monolog.formatter.json
+            cms:
+                type: stream
+                path: php://stderr
+                level: info
+                channels: ["cms"]
+                formatter: monolog.formatter.json
+            performance:
+                type: stream
+                path: php://stderr
+                level: info
+                channels: ["performance"]
                 formatter: monolog.formatter.json
             console:
                 type: console

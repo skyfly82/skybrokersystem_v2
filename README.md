@@ -34,11 +34,17 @@ This is a complete rewrite of the original Laravel-based system, now built on:
 - [ ] Mobile-responsive design
 - [ ] Real-time notifications
 
-### Phase 4: Advanced Features (Planned)
-- [ ] Analytics and reporting
-- [ ] CMS functionality
-- [ ] Performance optimization
-- [ ] Monitoring and logging
+### Phase 4: Advanced Features (In Progress)
+- [x] Analytics and reporting (initial)
+- [x] CMS functionality (initial)
+- [x] Performance optimization (caching, indexes)
+- [x] Monitoring and logging (channels + metrics)
+
+Key additions:
+- API endpoints: `/api/analytics/summary`, `/api/analytics/events`, `/api/cms/*`
+- Admin views: `/admin/analytics`, `/admin/cms`
+- Request metrics persisted to `v2_analytics_events` via event subscriber
+- CMS pages stored in `v2_cms_pages` with ETag and cache headers
 
 ## Architecture
 
