@@ -1,0 +1,20 @@
+@startuml
+!include <C4-PlantUML/C4_Context.puml>
+
+title Sky – System Context
+
+Person(customer, "Customer", "Uses the platform to manage shipments")
+Person(admin, "System Administrator", "Administers accounts and integrations")
+
+System(sky, "Sky Brokerage Platform",
+  "API‑first courier brokerage system built on Symfony 7 and Doctrine ORM")
+
+System_Ext(inpost, "InPost API", "External courier provider for shipments and tracking")
+System_Ext(email, "Email Service", "Delivers verification codes and notifications")
+
+Rel(customer, sky, "Uses via SPA / REST API", "HTTPS")
+Rel(admin, sky, "Manages via SPA / REST API", "HTTPS")
+Rel(sky, inpost, "Creates shipments & checks tracking", "REST API")
+Rel(sky, email, "Sends verification emails", "SMTP/REST API")
+
+@enduml
