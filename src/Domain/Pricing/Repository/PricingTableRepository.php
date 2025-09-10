@@ -42,6 +42,28 @@ class PricingTableRepository extends ServiceEntityRepository
     }
 
     /**
+     * Find pricing table by carrier, zone code and service type
+     */
+    public function findByCarrierZoneAndService(Carrier $carrier, string $zoneCode, string $serviceType): ?PricingTable
+    {
+        return $this->createQueryBuilder('pt')
+            ->join('pt.zone', 'z')
+            ->where('pt.carrier = :carrier')
+            ->andWhere('z.code = :zoneCode')
+            ->andWhere('pt.serviceType = :serviceType')
+            ->andWhere('pt.isActive = true')
+            ->andWhere('pt.effectiveFrom <= CURRENT_TIMESTAMP()')
+            ->andWhere('pt.effectiveUntil IS NULL OR pt.effectiveUntil >= CURRENT_TIMESTAMP()')
+            ->setParameter('carrier', $carrier)
+            ->setParameter('zoneCode', $zoneCode)
+            ->setParameter('serviceType', $serviceType)
+            ->orderBy('pt.version', 'DESC')
+            ->setMaxResults(1)
+            ->getQuery()
+            ->getOneOrNullResult();
+    }
+
+    /**
      * Find all active pricing tables for carrier
      *
      * @return PricingTable[]

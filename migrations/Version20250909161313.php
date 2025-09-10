@@ -20,10 +20,9 @@ final class Version20250909161313 extends AbstractMigration
     public function up(Schema $schema): void
     {
         // this up() migration is auto-generated, please modify it to your needs
-        $this->addSql('ALTER TABLE secret_audit_logs CHANGE secret_id secret_id BINARY(16) DEFAULT NULL COMMENT \'(DC2Type:uuid)\'');
+        $this->addSql('ALTER TABLE secret_audit_logs CHANGE secret_id secret_id CHAR(36) DEFAULT NULL');
         $this->addSql('ALTER TABLE v2_analytics_events CHANGE created_at created_at DATETIME NOT NULL COMMENT \'(DC2Type:datetime_immutable)\'');
         $this->addSql('ALTER TABLE v2_carriers CHANGE created_at created_at DATETIME NOT NULL COMMENT \'(DC2Type:datetime_immutable)\', CHANGE updated_at updated_at DATETIME DEFAULT NULL COMMENT \'(DC2Type:datetime_immutable)\'');
-        $this->addSql('ALTER TABLE v2_carriers RENAME INDEX uniq_carrier_code TO UNIQ_D697802277153098');
         $this->addSql('ALTER TABLE v2_cms_pages CHANGE created_at created_at DATETIME NOT NULL');
         $this->addSql('ALTER TABLE v2_cms_pages RENAME INDEX uniq_cms_slug TO UNIQ_60B5A794989D9B62');
         $this->addSql('ALTER TABLE v2_credit_accounts CHANGE status status VARCHAR(50) NOT NULL, CHANGE used_credit used_credit NUMERIC(10, 2) NOT NULL, CHANGE overdraft_limit overdraft_limit NUMERIC(10, 2) NOT NULL, CHANGE payment_term_days payment_term_days SMALLINT NOT NULL, CHANGE currency currency VARCHAR(3) NOT NULL, CHANGE last_credit_review_date last_credit_review_date DATE DEFAULT NULL COMMENT \'(DC2Type:date_immutable)\', CHANGE next_review_date next_review_date DATE DEFAULT NULL COMMENT \'(DC2Type:date_immutable)\'');
@@ -73,8 +72,6 @@ final class Version20250909161313 extends AbstractMigration
         $this->addSql('CREATE INDEX IDX_PRICING_EFFECTIVE ON v2_pricing_tables (effective_from, effective_until)');
         $this->addSql('CREATE INDEX IDX_PRICING_SERVICE ON v2_pricing_tables (service_type)');
         $this->addSql('CREATE UNIQUE INDEX UNQ_PRICING_CARRIER_ZONE_SERVICE_VERSION ON v2_pricing_tables (carrier_id, zone_id, service_type, version)');
-        $this->addSql('ALTER TABLE v2_pricing_tables RENAME INDEX carrier_id TO IDX_69A9F53121DFC797');
-        $this->addSql('ALTER TABLE v2_pricing_tables RENAME INDEX zone_id TO IDX_69A9F5319F2C3FAB');
         $this->addSql('ALTER TABLE v2_pricing_zones CHANGE code code VARCHAR(10) NOT NULL, CHANGE name name VARCHAR(100) NOT NULL, CHANGE description description LONGTEXT DEFAULT NULL, CHANGE created_at created_at DATETIME NOT NULL COMMENT \'(DC2Type:datetime_immutable)\', CHANGE updated_at updated_at DATETIME DEFAULT NULL COMMENT \'(DC2Type:datetime_immutable)\'');
         $this->addSql('CREATE INDEX IDX_ZONE_TYPE ON v2_pricing_zones (zone_type)');
         $this->addSql('CREATE INDEX IDX_ZONE_ACTIVE ON v2_pricing_zones (is_active)');
@@ -95,10 +92,9 @@ final class Version20250909161313 extends AbstractMigration
     public function down(Schema $schema): void
     {
         // this down() migration is auto-generated, please modify it to your needs
-        $this->addSql('ALTER TABLE secret_audit_logs CHANGE secret_id secret_id BINARY(16) NOT NULL COMMENT \'(DC2Type:uuid)\'');
+        $this->addSql('ALTER TABLE secret_audit_logs CHANGE secret_id secret_id CHAR(36) NOT NULL');
         $this->addSql('ALTER TABLE v2_analytics_events CHANGE created_at created_at DATETIME DEFAULT CURRENT_TIMESTAMP NOT NULL');
         $this->addSql('ALTER TABLE v2_carriers CHANGE created_at created_at DATETIME DEFAULT CURRENT_TIMESTAMP NOT NULL, CHANGE updated_at updated_at DATETIME DEFAULT NULL');
-        $this->addSql('ALTER TABLE v2_carriers RENAME INDEX uniq_d697802277153098 TO UNIQ_CARRIER_CODE');
         $this->addSql('ALTER TABLE v2_cms_pages CHANGE created_at created_at DATETIME DEFAULT CURRENT_TIMESTAMP NOT NULL');
         $this->addSql('ALTER TABLE v2_cms_pages RENAME INDEX uniq_60b5a794989d9b62 TO UNIQ_CMS_SLUG');
         $this->addSql('ALTER TABLE v2_credit_accounts DROP FOREIGN KEY FK_BD8257EBA76ED395');
@@ -148,8 +144,6 @@ final class Version20250909161313 extends AbstractMigration
         $this->addSql('ALTER TABLE v2_pricing_tables DROP created_by_id, DROP updated_by_id, DROP pricing_model, DROP version, DROP description, DROP min_weight_kg, DROP max_weight_kg, DROP min_dimensions_cm, DROP max_dimensions_cm, DROP volumetric_divisor, DROP tax_rate, DROP config, DROP effective_from, DROP effective_until, DROP updated_at, CHANGE service_type service_type VARCHAR(50) DEFAULT \'standard\' NOT NULL, CHANGE currency currency VARCHAR(3) DEFAULT \'PLN\' NOT NULL, CHANGE created_at created_at DATETIME DEFAULT CURRENT_TIMESTAMP NOT NULL');
         $this->addSql('ALTER TABLE v2_pricing_tables ADD CONSTRAINT v2_pricing_tables_ibfk_1 FOREIGN KEY (carrier_id) REFERENCES v2_carriers (id) ON UPDATE NO ACTION ON DELETE CASCADE');
         $this->addSql('ALTER TABLE v2_pricing_tables ADD CONSTRAINT v2_pricing_tables_ibfk_2 FOREIGN KEY (zone_id) REFERENCES v2_pricing_zones (id) ON UPDATE NO ACTION ON DELETE CASCADE');
-        $this->addSql('ALTER TABLE v2_pricing_tables RENAME INDEX idx_69a9f53121dfc797 TO carrier_id');
-        $this->addSql('ALTER TABLE v2_pricing_tables RENAME INDEX idx_69a9f5319f2c3fab TO zone_id');
         $this->addSql('DROP INDEX IDX_ZONE_TYPE ON v2_pricing_zones');
         $this->addSql('DROP INDEX IDX_ZONE_ACTIVE ON v2_pricing_zones');
         $this->addSql('DROP INDEX IDX_ZONE_SORT ON v2_pricing_zones');

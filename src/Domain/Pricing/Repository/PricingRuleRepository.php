@@ -38,6 +38,14 @@ class PricingRuleRepository extends ServiceEntityRepository
     }
 
     /**
+     * Find pricing rule by table and weight (alias for findByWeight)
+     */
+    public function findByTableAndWeight(PricingTable $pricingTable, float $weight): ?PricingRule
+    {
+        return $this->findByWeight($pricingTable, $weight);
+    }
+
+    /**
      * Find all rules for pricing table
      *
      * @return PricingRule[]

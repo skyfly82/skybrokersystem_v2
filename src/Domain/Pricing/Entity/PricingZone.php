@@ -27,6 +27,23 @@ class PricingZone
     public const ZONE_TYPE_NATIONAL = 'national'; 
     public const ZONE_TYPE_INTERNATIONAL = 'international';
 
+    // Geographic Zone Constants
+    public const ZONE_LOCAL = 'LOCAL';
+    public const ZONE_DOMESTIC = 'DOMESTIC';
+    public const ZONE_EU_WEST = 'EU_WEST';
+    public const ZONE_EU_EAST = 'EU_EAST';
+    public const ZONE_EUROPE = 'EUROPE';
+    public const ZONE_WORLD = 'WORLD';
+
+    public const AVAILABLE_ZONES = [
+        self::ZONE_LOCAL,
+        self::ZONE_DOMESTIC,
+        self::ZONE_EU_WEST,
+        self::ZONE_EU_EAST,
+        self::ZONE_EUROPE,
+        self::ZONE_WORLD,
+    ];
+
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]

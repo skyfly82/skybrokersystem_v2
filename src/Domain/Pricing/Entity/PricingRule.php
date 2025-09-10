@@ -228,24 +228,40 @@ class PricingRule
 
     public function getPrice(): float
     {
-        return $this->price;
+        return (float)$this->price;
     }
 
     public function setPrice(float $price): static
     {
-        $this->price = $price;
+        $this->price = number_format($price, 4, '.', '');
         return $this;
+    }
+
+    /**
+     * Alias for getPrice() - used in flat rate calculations
+     */
+    public function getFlatRate(): string
+    {
+        return $this->price;
     }
 
     public function getPricePerKg(): ?float
     {
-        return $this->pricePerKg;
+        return $this->pricePerKg ? (float)$this->pricePerKg : null;
     }
 
     public function setPricePerKg(?float $pricePerKg): static
     {
-        $this->pricePerKg = $pricePerKg;
+        $this->pricePerKg = $pricePerKg !== null ? number_format($pricePerKg, 4, '.', '') : null;
         return $this;
+    }
+
+    /**
+     * Get minimum weight for this rule
+     */
+    public function getMinWeight(): float
+    {
+        return (float)$this->weightFrom;
     }
 
     public function getWeightStep(): ?float

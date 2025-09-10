@@ -28,6 +28,17 @@ class AdditionalServiceRepository extends ServiceEntityRepository
     }
 
     /**
+     * Find service by carrier and code
+     */
+    public function findByCarrierAndCode(Carrier $carrier, string $code): ?AdditionalService
+    {
+        return $this->findOneBy([
+            'carrier' => $carrier,
+            'code' => strtoupper($code)
+        ]);
+    }
+
+    /**
      * Find active services for carrier
      *
      * @return AdditionalService[]

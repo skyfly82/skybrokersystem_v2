@@ -34,7 +34,7 @@ class PromotionalPricingRepository extends ServiceEntityRepository
             ->andWhere('pp.validFrom <= CURRENT_TIMESTAMP()')
             ->andWhere('pp.validUntil >= CURRENT_TIMESTAMP()')
             ->setParameter('customer', $customer)
-            ->orderBy('pp.priorityLevel', 'DESC')
+            ->orderBy('pp.id', 'DESC')
             ->getQuery()
             ->getResult();
     }
@@ -48,18 +48,20 @@ class PromotionalPricingRepository extends ServiceEntityRepository
     {
         $qb = $this->createQueryBuilder('pp')
             ->leftJoin('pp.customerPricing', 'cp')
-            ->leftJoin('cp.basePricingTable', 'pt')
+            ->leftJoin('cp.basePricingTable', 'pt')  
             ->leftJoin('pt.carrier', 'c')
             ->where('pp.isActive = true')
             ->andWhere('pp.validFrom <= CURRENT_TIMESTAMP()')
-            ->andWhere('pp.validUntil >= CURRENT_TIMESTAMP()')
-            ->andWhere(
-                $qb->expr()->orX(
-                    'pp.customerPricing IS NULL', // Global promotions
-                    'c.code = :carrierCode' // Carrier-specific promotions
-                )
+            ->andWhere('pp.validUntil >= CURRENT_TIMESTAMP()');
+            
+        // Add carrier filter - either global promotions or carrier-specific ones
+        $qb->andWhere(
+            $qb->expr()->orX(
+                'pp.customerPricing IS NULL', // Global promotions
+                'c.code = :carrierCode' // Carrier-specific promotions
             )
-            ->setParameter('carrierCode', $carrierCode);
+        )
+        ->setParameter('carrierCode', $carrierCode);
 
         if ($customerId !== null) {
             $qb->andWhere(
@@ -76,7 +78,7 @@ class PromotionalPricingRepository extends ServiceEntityRepository
                ->setParameter('promoCodes', $promoCodes);
         }
 
-        return $qb->orderBy('pp.priorityLevel', 'DESC')
+        return $qb->orderBy('pp.id', 'DESC')
                   ->getQuery()
                   ->getResult();
     }
@@ -109,7 +111,7 @@ class PromotionalPricingRepository extends ServiceEntityRepository
             ->andWhere('pp.isActive = true')
             ->andWhere('pp.validFrom <= CURRENT_TIMESTAMP()')
             ->andWhere('pp.validUntil >= CURRENT_TIMESTAMP()')
-            ->orderBy('pp.priorityLevel', 'DESC')
+            ->orderBy('pp.id', 'DESC')
             ->getQuery()
             ->getResult();
     }
@@ -119,14 +121,14 @@ class PromotionalPricingRepository extends ServiceEntityRepository
      *
      * @return PromotionalPricing[]
      */
-    public function findActivePromotions(\DateTimeInterface $date): array
+    public function findActivePromotionsByDate(\DateTimeInterface $date): array
     {
         return $this->createQueryBuilder('pp')
             ->where('pp.isActive = true')
             ->andWhere('pp.validFrom <= :date OR pp.validFrom IS NULL')
             ->andWhere('pp.validUntil >= :date OR pp.validUntil IS NULL')
             ->setParameter('date', $date)
-            ->orderBy('pp.priorityLevel', 'DESC')
+            ->orderBy('pp.id', 'DESC')
             ->getQuery()
             ->getResult();
     }

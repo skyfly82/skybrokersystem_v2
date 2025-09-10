@@ -127,13 +127,29 @@ class AdditionalServicePrice
 
     public function getPrice(): float
     {
-        return $this->price;
+        return (float)$this->price;
     }
 
     public function setPrice(float $price): static
     {
-        $this->price = $price;
+        $this->price = number_format($price, 4, '.', '');
         return $this;
+    }
+
+    /**
+     * Get flat rate price - alias for getPrice()
+     */
+    public function getFlatRate(): string
+    {
+        return $this->price;
+    }
+
+    /**
+     * Get calculation method from the associated service
+     */
+    public function getCalculationMethod(): string
+    {
+        return $this->additionalService?->getPricingType() ?? 'flat_rate';
     }
 
     public function getMinPrice(): ?float

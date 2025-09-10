@@ -172,3 +172,65 @@ services:
             - '@monolog.logger'
         tags:
             - { name: 'monolog.logger', channel: 'payment' }
+
+    # Pricing Calculator Services
+    App\Domain\Pricing\Contracts\PricingCalculatorInterface:
+        alias: App\Domain\Pricing\Service\PricingCalculatorService
+
+    App\Domain\Pricing\Service\PricingCalculatorService:
+        arguments:
+            - '@App\Domain\Pricing\Repository\CarrierRepository'
+            - '@App\Domain\Pricing\Repository\PricingTableRepository'
+            - '@App\Domain\Pricing\Repository\PricingRuleRepository'
+            - '@App\Domain\Pricing\Repository\AdditionalServiceRepository'
+            - '@App\Domain\Pricing\Repository\AdditionalServicePriceRepository'
+            - '@App\Domain\Pricing\Repository\CustomerPricingRepository'
+            - '@App\Domain\Pricing\Repository\PromotionalPricingRepository'
+            - '@App\Domain\Pricing\Service\CarrierRateService'
+            - '@App\Domain\Pricing\Service\PricingRuleEngine'
+            - '@validator'
+            - '@monolog.logger'
+        tags:
+            - { name: 'monolog.logger', channel: 'pricing' }
+            - { name: 'pricing.calculator', alias: 'main' }
+
+    App\Domain\Pricing\Service\CarrierRateService:
+        arguments:
+            - '@App\Domain\Pricing\Repository\PricingTableRepository'
+            - '@App\Domain\Pricing\Repository\PricingRuleRepository'
+            - '@App\Domain\Pricing\Repository\AdditionalServicePriceRepository'
+            - '@App\Domain\Pricing\Repository\PricingZoneRepository'
+            - '@monolog.logger'
+        tags:
+            - { name: 'monolog.logger', channel: 'pricing' }
+
+    App\Domain\Pricing\Service\PricingRuleEngine:
+        arguments:
+            - '@monolog.logger'
+        tags:
+            - { name: 'monolog.logger', channel: 'pricing' }
+
+    # Geographical Zone Services
+    App\Domain\Pricing\Service\GeographicalZoneService:
+        arguments:
+            - '@App\Domain\Pricing\Repository\PricingZoneRepository'
+            - '@App\Domain\Pricing\Repository\CarrierRepository'
+            - '@App\Domain\Pricing\Service\PostalCodeMapper'
+            - '@App\Domain\Pricing\Service\CountryZoneMapper'
+            - '@doctrine.orm.entity_manager'
+            - '@monolog.logger'
+        tags:
+            - { name: 'monolog.logger', channel: 'pricing' }
+            - { name: 'geographical.zone', alias: 'main' }
+
+    App\Domain\Pricing\Service\PostalCodeMapper:
+        arguments:
+            - '@monolog.logger'
+        tags:
+            - { name: 'monolog.logger', channel: 'pricing' }
+
+    App\Domain\Pricing\Service\CountryZoneMapper:
+        arguments:
+            - '@monolog.logger'
+        tags:
+            - { name: 'monolog.logger', channel: 'pricing' }

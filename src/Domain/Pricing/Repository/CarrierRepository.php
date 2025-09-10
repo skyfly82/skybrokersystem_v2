@@ -49,9 +49,9 @@ class CarrierRepository extends ServiceEntityRepository
     public function findByZoneSupport(string $zoneCode): array
     {
         return $this->createQueryBuilder('c')
-            ->where('JSON_CONTAINS(c.supportedZones, :zone) = 1')
+            ->where('c.supportedZones LIKE :zone')
             ->andWhere('c.isActive = true')
-            ->setParameter('zone', json_encode($zoneCode))
+            ->setParameter('zone', '%"' . $zoneCode . '"%')
             ->orderBy('c.sortOrder', 'ASC')
             ->getQuery()
             ->getResult();
@@ -84,6 +84,24 @@ class CarrierRepository extends ServiceEntityRepository
             ->where('c.maxWeightKg IS NULL OR c.maxWeightKg >= :weight')
             ->andWhere('c.isActive = true')
             ->setParameter('weight', $weightKg)
+            ->orderBy('c.sortOrder', 'ASC')
+            ->getQuery()
+            ->getResult();
+    }
+
+    /**
+     * Find carriers that have pricing tables for specific zone
+     *
+     * @return Carrier[]
+     */
+    public function findCarriersForZone(\App\Domain\Pricing\Entity\PricingZone $zone): array
+    {
+        return $this->createQueryBuilder('c')
+            ->innerJoin('c.pricingTables', 'pt')
+            ->where('pt.zone = :zone')
+            ->andWhere('c.isActive = true')
+            ->andWhere('pt.isActive = true')
+            ->setParameter('zone', $zone)
             ->orderBy('c.sortOrder', 'ASC')
             ->getQuery()
             ->getResult();

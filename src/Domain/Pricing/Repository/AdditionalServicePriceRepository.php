@@ -37,6 +37,28 @@ class AdditionalServicePriceRepository extends ServiceEntityRepository
     }
 
     /**
+     * Find price for service and zone code
+     */
+    public function findByServiceAndZone(AdditionalService $service, string $zoneCode): ?AdditionalServicePrice
+    {
+        return $this->createQueryBuilder('asp')
+            ->join('asp.pricingTable', 'pt')
+            ->join('pt.zone', 'z')
+            ->where('asp.additionalService = :service')
+            ->andWhere('z.code = :zoneCode')
+            ->andWhere('asp.isActive = true')
+            ->andWhere('pt.isActive = true')
+            ->andWhere('pt.effectiveFrom <= CURRENT_TIMESTAMP()')
+            ->andWhere('pt.effectiveUntil IS NULL OR pt.effectiveUntil >= CURRENT_TIMESTAMP()')
+            ->setParameter('service', $service)
+            ->setParameter('zoneCode', $zoneCode)
+            ->orderBy('pt.version', 'DESC')
+            ->setMaxResults(1)
+            ->getQuery()
+            ->getOneOrNullResult();
+    }
+
+    /**
      * Find all prices for pricing table
      *
      * @return AdditionalServicePrice[]
