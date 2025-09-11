@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import StatCard from '../components/StatCard.js';
+import PricingManagement from '../components/PricingManagement.js';
 import { api } from '../services/api.js';
 
 export default function Admin({ token, user, current, addToast }) {
@@ -45,6 +46,13 @@ export default function Admin({ token, user, current, addToast }) {
     React.createElement('div', { style: styles.page },
       React.createElement('h2', null, 'Zamówienia'),
       React.createElement('div', { style: styles.muted }, 'Widok zamówień (do podpięcia pod API).')
+    )
+  );
+
+  if (current === 'pricing') return (
+    React.createElement('div', { style: styles.page },
+      React.createElement('h2', null, 'Zarządzanie cennikiem'),
+      React.createElement(PricingManagement, { token, addToast })
     )
   );
 

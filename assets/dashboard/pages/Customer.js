@@ -1,5 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import StatCard from '../components/StatCard.js';
+import PricingCalculator from '../components/PricingCalculator.js';
+import ShipmentTracker from '../components/ShipmentTracker.js';
+import BillingManager from '../components/BillingManager.js';
 import { api } from '../services/api.js';
 
 export default function Customer({ token, user, current, addToast }) {
@@ -30,15 +33,22 @@ export default function Customer({ token, user, current, addToast }) {
 
   if (current === 'shipments') return (
     React.createElement('div', { style: styles.page },
-      React.createElement('h2', null, 'Wysyłki'),
-      React.createElement('div', { style: styles.muted }, 'Śledzenie przesyłek (do podpięcia pod API).')
+      React.createElement('h2', null, 'Śledzenie przesyłek'),
+      React.createElement(ShipmentTracker, { token, addToast })
     )
   );
 
   if (current === 'billing') return (
     React.createElement('div', { style: styles.page },
       React.createElement('h2', null, 'Płatności i faktury'),
-      React.createElement('div', { style: styles.muted }, 'Widok faktur i płatności (do podpięcia pod API).')
+      React.createElement(BillingManager, { token, addToast })
+    )
+  );
+
+  if (current === 'pricing') return (
+    React.createElement('div', { style: styles.page },
+      React.createElement('h2', null, 'Kalkulator cen'),
+      React.createElement(PricingCalculator, { token, addToast })
     )
   );
 

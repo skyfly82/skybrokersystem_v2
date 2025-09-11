@@ -15,6 +15,7 @@ export default function Sidebar({ className, userType, current, onNavigate }) {
   const items = userType === 'system'
     ? [
         { k: 'overview', label: 'Przegląd' },
+        { k: 'pricing', label: 'Cennik' },
         { k: 'team', label: 'Zespół' },
         { k: 'customers', label: 'Klienci' },
         { k: 'orders', label: 'Zamówienia' },
@@ -22,6 +23,7 @@ export default function Sidebar({ className, userType, current, onNavigate }) {
       ]
     : [
         { k: 'overview', label: 'Pulpit' },
+        { k: 'pricing', label: 'Kalkulator cen' },
         { k: 'orders', label: 'Zamówienia' },
         { k: 'shipments', label: 'Wysyłki' },
         { k: 'billing', label: 'Płatności' },
