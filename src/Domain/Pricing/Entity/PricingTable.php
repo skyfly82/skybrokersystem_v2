@@ -190,13 +190,27 @@ class PricingTable
     #[ORM\OneToMany(mappedBy: 'basePricingTable', targetEntity: CustomerPricing::class)]
     private Collection $customerPricings;
 
-    public function __construct()
+    public function __construct(?Carrier $carrier = null, ?PricingZone $zone = null, ?string $serviceType = null)
     {
         $this->pricingRules = new ArrayCollection();
         $this->additionalServicePrices = new ArrayCollection();
         $this->customerPricings = new ArrayCollection();
         $this->createdAt = new \DateTimeImmutable();
         $this->effectiveFrom = new \DateTimeImmutable();
+        
+        if ($carrier !== null) {
+            $this->carrier = $carrier;
+        }
+        if ($zone !== null) {
+            $this->zone = $zone;
+        }
+        if ($serviceType !== null) {
+            $this->serviceType = $serviceType;
+        }
+        
+        // Set default values that are required
+        $this->basePrice = '0.0000';
+        $this->name = '';
     }
 
     public function getId(): ?int

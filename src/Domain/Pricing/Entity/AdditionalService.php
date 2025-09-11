@@ -50,7 +50,7 @@ class AdditionalService
     #[Assert\NotNull]
     private ?Carrier $carrier = null;
 
-    #[ORM\Column(length: 50, unique: true)]
+    #[ORM\Column(length: 50)]
     #[Assert\NotBlank]
     #[Assert\Length(max: 50)]
     #[Assert\Regex(pattern: '/^[A-Z_]+$/', message: 'Service code must contain only uppercase letters and underscores')]
@@ -154,10 +154,26 @@ class AdditionalService
     #[ORM\OneToMany(mappedBy: 'additionalService', targetEntity: AdditionalServicePrice::class)]
     private Collection $servicePrices;
 
-    public function __construct()
+    public function __construct(?Carrier $carrier = null, ?string $code = null, ?string $name = null, ?string $serviceType = null, ?string $pricingType = null)
     {
         $this->servicePrices = new ArrayCollection();
         $this->createdAt = new \DateTime();
+        
+        if ($carrier !== null) {
+            $this->carrier = $carrier;
+        }
+        if ($code !== null) {
+            $this->code = strtoupper($code);
+        }
+        if ($name !== null) {
+            $this->name = $name;
+        }
+        if ($serviceType !== null) {
+            $this->serviceType = $serviceType;
+        }
+        if ($pricingType !== null) {
+            $this->pricingType = $pricingType;
+        }
     }
 
     public function getId(): ?int

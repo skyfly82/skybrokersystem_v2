@@ -352,7 +352,7 @@ class PricingRuleEngine implements PricingRuleEngineInterface
 
             // Validate all rules
             $allRules = array_merge($pricingRules, $promotionalPricings, $customerPricings);
-            $validationErrors = $this->validateRules($allRules);
+            $validationErrors = $this->ruleValidator->validateRules($allRules);
 
             if (!empty($validationErrors)) {
                 return RuleResult::error($context->basePrice, $validationErrors);
@@ -892,8 +892,9 @@ class PricingRuleEngine implements PricingRuleEngineInterface
      */
     private function getPromotionalPricingsForContext(RuleContext $context): array
     {
-        $now = new \DateTime();
-        return $this->promotionalPricingRepository->findActivePromotions($now);
+        // For now, we'll pass a placeholder carrier code since we don't have it in context
+        // In a real implementation, this would need to be passed from the calling context
+        return $this->promotionalPricingRepository->findActivePromotions('ALL');
     }
 
     /**

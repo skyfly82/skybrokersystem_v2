@@ -142,6 +142,9 @@ class PricingRule
     public function __construct()
     {
         $this->createdAt = new \DateTime();
+        // Set default values for required fields to satisfy NOT NULL constraints
+        $this->weightFrom = '0.000';
+        $this->price = '0.0000';
     }
 
     public function getId(): ?int
@@ -173,23 +176,23 @@ class PricingRule
 
     public function getWeightFrom(): float
     {
-        return $this->weightFrom;
+        return (float)$this->weightFrom;
     }
 
-    public function setWeightFrom(float $weightFrom): static
+    public function setWeightFrom(float|string $weightFrom): static
     {
-        $this->weightFrom = $weightFrom;
+        $this->weightFrom = number_format((float)$weightFrom, 3, '.', '');
         return $this;
     }
 
     public function getWeightTo(): ?float
     {
-        return $this->weightTo;
+        return $this->weightTo ? (float)$this->weightTo : null;
     }
 
-    public function setWeightTo(?float $weightTo): static
+    public function setWeightTo(float|string|null $weightTo): static
     {
-        $this->weightTo = $weightTo;
+        $this->weightTo = $weightTo ? number_format((float)$weightTo, 3, '.', '') : null;
         return $this;
     }
 
@@ -231,9 +234,9 @@ class PricingRule
         return (float)$this->price;
     }
 
-    public function setPrice(float $price): static
+    public function setPrice(float|string $price): static
     {
-        $this->price = number_format($price, 4, '.', '');
+        $this->price = number_format((float)$price, 4, '.', '');
         return $this;
     }
 
@@ -250,9 +253,9 @@ class PricingRule
         return $this->pricePerKg ? (float)$this->pricePerKg : null;
     }
 
-    public function setPricePerKg(?float $pricePerKg): static
+    public function setPricePerKg(float|string|null $pricePerKg): static
     {
-        $this->pricePerKg = $pricePerKg !== null ? number_format($pricePerKg, 4, '.', '') : null;
+        $this->pricePerKg = $pricePerKg !== null ? number_format((float)$pricePerKg, 4, '.', '') : null;
         return $this;
     }
 

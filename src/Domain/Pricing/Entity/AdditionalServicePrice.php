@@ -93,9 +93,19 @@ class AdditionalServicePrice
     #[ORM\Column(type: Types::DATETIME_MUTABLE, nullable: true)]
     private ?\DateTimeInterface $updatedAt = null;
 
-    public function __construct()
+    public function __construct(?PricingTable $pricingTable = null, ?AdditionalService $additionalService = null)
     {
         $this->createdAt = new \DateTime();
+        
+        if ($pricingTable !== null) {
+            $this->pricingTable = $pricingTable;
+        }
+        if ($additionalService !== null) {
+            $this->additionalService = $additionalService;
+        }
+        
+        // Set default price value to satisfy NOT NULL constraint
+        $this->price = '0.0000';
     }
 
     public function getId(): ?int
@@ -130,9 +140,9 @@ class AdditionalServicePrice
         return (float)$this->price;
     }
 
-    public function setPrice(float $price): static
+    public function setPrice(float|string $price): static
     {
-        $this->price = number_format($price, 4, '.', '');
+        $this->price = number_format((float)$price, 4, '.', '');
         return $this;
     }
 
@@ -154,34 +164,34 @@ class AdditionalServicePrice
 
     public function getMinPrice(): ?float
     {
-        return $this->minPrice;
+        return $this->minPrice ? (float)$this->minPrice : null;
     }
 
-    public function setMinPrice(?float $minPrice): static
+    public function setMinPrice(float|string|null $minPrice): static
     {
-        $this->minPrice = $minPrice;
+        $this->minPrice = $minPrice !== null ? number_format((float)$minPrice, 4, '.', '') : null;
         return $this;
     }
 
     public function getMaxPrice(): ?float
     {
-        return $this->maxPrice;
+        return $this->maxPrice ? (float)$this->maxPrice : null;
     }
 
-    public function setMaxPrice(?float $maxPrice): static
+    public function setMaxPrice(float|string|null $maxPrice): static
     {
-        $this->maxPrice = $maxPrice;
+        $this->maxPrice = $maxPrice !== null ? number_format((float)$maxPrice, 4, '.', '') : null;
         return $this;
     }
 
     public function getPercentageRate(): ?float
     {
-        return $this->percentageRate;
+        return $this->percentageRate ? (float)$this->percentageRate : null;
     }
 
-    public function setPercentageRate(?float $percentageRate): static
+    public function setPercentageRate(float|string|null $percentageRate): static
     {
-        $this->percentageRate = $percentageRate;
+        $this->percentageRate = $percentageRate !== null ? number_format((float)$percentageRate, 2, '.', '') : null;
         return $this;
     }
 

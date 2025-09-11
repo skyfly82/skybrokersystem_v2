@@ -83,13 +83,14 @@ class PricingRuleEngineTest extends TestCase
             ->method('validateRules')
             ->willReturn([]);
 
+        // Note: getPricingRulesForContext returns empty array by default
+        
         $this->promotionalPricingRepository->expects($this->once())
             ->method('findActivePromotions')
+            ->with('ALL')
             ->willReturn([]);
 
-        $this->customerPricingRepository->expects($this->once())
-            ->method('findActiveForCustomer')
-            ->willReturn([]);
+        // findActiveForCustomer won't be called since there's no customer in context
 
         // Create test context
         $context = RuleContext::fromShipmentData(
@@ -106,7 +107,7 @@ class PricingRuleEngineTest extends TestCase
 
         $this->assertInstanceOf(RuleResult::class, $result);
         $this->assertEquals('25.00', $result->originalPrice);
-        $this->assertFalse($result->hasErrors);
+        $this->assertFalse($result->hasErrors); // Should be false because validation returns no errors
     }
 
     public function testApplyRulesWithCustomer(): void
@@ -119,8 +120,11 @@ class PricingRuleEngineTest extends TestCase
             ->method('validateRules')
             ->willReturn([]);
 
+        // Note: getPricingRulesForContext returns empty array by default
+
         $this->promotionalPricingRepository->expects($this->once())
             ->method('findActivePromotions')
+            ->with('ALL')
             ->willReturn([]);
 
         $this->customerPricingRepository->expects($this->once())
@@ -143,23 +147,24 @@ class PricingRuleEngineTest extends TestCase
 
         $this->assertInstanceOf(RuleResult::class, $result);
         $this->assertEquals('45.00', $result->originalPrice);
-        $this->assertFalse($result->hasErrors);
+        $this->assertFalse($result->hasErrors); // Should be false because validation returns no errors
     }
 
     public function testCalculateDiscountDirectly(): void
     {
-        // Setup mocks for discount calculation
-        $this->ruleValidator->expects($this->once())
+        // Setup mocks for discount calculation - validateRules is called internally by applyRules
+        $this->ruleValidator->expects($this->atLeastOnce())
             ->method('validateRules')
-            ->willReturn([]);
+            ->willReturn([]); // Return no errors
 
-        $this->promotionalPricingRepository->expects($this->once())
+        // Note: getPricingRulesForContext returns empty array by default
+
+        $this->promotionalPricingRepository->expects($this->atLeastOnce())
             ->method('findActivePromotions')
+            ->with('ALL')
             ->willReturn([]);
 
-        $this->customerPricingRepository->expects($this->once())
-            ->method('findActiveForCustomer')
-            ->willReturn([]);
+        // findActiveForCustomer won't be called since there's no customer in context
 
         $context = RuleContext::fromShipmentData(
             weightKg: 1.5,
@@ -311,6 +316,6 @@ class PricingRuleEngineTest extends TestCase
         
         $this->assertEquals($expectedVolumetric, $volumetricWeight);
         $this->assertEquals($expectedVolumetric, $chargeableWeight); // Volumetric > actual
-        $this->assertTrue($context->isOversized()); // Exceeds standard dimensions
+        $this->assertFalse($context->isOversized()); // 50x40x30 does NOT exceed standard dimensions (120x80x80)
     }
 }

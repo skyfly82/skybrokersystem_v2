@@ -63,20 +63,32 @@ class PricingSeedCommand extends Command
             $this->clearExistingData($io);
         }
 
+        // Begin transaction for data consistency
+        $this->entityManager->getConnection()->beginTransaction();
+        
         try {
             $io->section('Creating Pricing Zones...');
             $zones = $this->createPricingZones($io);
+            
+            // Flush zones first to get IDs
+            $this->entityManager->flush();
 
             $io->section('Creating Carriers...');
             $carriers = $this->createCarriers($io);
+            
+            // Flush carriers to get IDs
+            $this->entityManager->flush();
 
             $io->section('Creating Additional Services...');
             $this->createAdditionalServices($io, $carriers);
+            
+            // Flush services to get IDs
+            $this->entityManager->flush();
 
             $io->section('Creating Pricing Tables...');
             $pricingTables = $this->createPricingTables($io, $carriers, $zones);
             
-            // Flush to ensure relationships are available
+            // Flush pricing tables to get IDs
             $this->entityManager->flush();
 
             $io->section('Creating Pricing Rules...');
@@ -85,7 +97,11 @@ class PricingSeedCommand extends Command
             $io->section('Creating Additional Service Prices...');
             $this->createAdditionalServicePrices($io, $pricingTables);
 
+            // Final flush
             $this->entityManager->flush();
+            
+            // Commit transaction
+            $this->entityManager->getConnection()->commit();
 
             $io->success('Pricing system seeding completed successfully!');
             $io->table(['Component', 'Count'], [
@@ -96,7 +112,10 @@ class PricingSeedCommand extends Command
             ]);
 
         } catch (\Exception $e) {
+            // Rollback transaction on error
+            $this->entityManager->getConnection()->rollback();
             $io->error('Error during seeding: ' . $e->getMessage());
+            $io->error('Stack trace: ' . $e->getTraceAsString());
             return Command::FAILURE;
         }
 
@@ -105,17 +124,22 @@ class PricingSeedCommand extends Command
 
     private function clearExistingData(SymfonyStyle $io): void
     {
-        // Clear in correct order to avoid foreign key constraints
-        $this->entityManager->createQuery('DELETE FROM ' . AdditionalServicePrice::class)->execute();
-        $this->entityManager->createQuery('DELETE FROM ' . PricingRule::class)->execute();
-        $this->entityManager->createQuery('DELETE FROM ' . PricingTable::class)->execute();
-        $this->entityManager->createQuery('DELETE FROM ' . AdditionalService::class)->execute();
-        $this->entityManager->createQuery('DELETE FROM ' . Carrier::class)->execute();
-        $this->entityManager->createQuery('DELETE FROM ' . PricingZone::class)->execute();
-        
-        $this->entityManager->flush();
-        
-        $io->text('Cleared existing pricing data.');
+        try {
+            // Clear in correct order to avoid foreign key constraints
+            $this->entityManager->createQuery('DELETE FROM ' . AdditionalServicePrice::class)->execute();
+            $this->entityManager->createQuery('DELETE FROM ' . PricingRule::class)->execute();
+            $this->entityManager->createQuery('DELETE FROM ' . PricingTable::class)->execute();
+            $this->entityManager->createQuery('DELETE FROM ' . AdditionalService::class)->execute();
+            $this->entityManager->createQuery('DELETE FROM ' . Carrier::class)->execute();
+            $this->entityManager->createQuery('DELETE FROM ' . PricingZone::class)->execute();
+            
+            $this->entityManager->flush();
+            
+            $io->text('Cleared existing pricing data.');
+        } catch (\Exception $e) {
+            $io->error('Error clearing existing data: ' . $e->getMessage());
+            throw $e;
+        }
     }
 
     /**
