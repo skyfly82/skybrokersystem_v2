@@ -245,6 +245,138 @@ class ShipmentRepository extends ServiceEntityRepository
     }
 
     /**
+     * Find shipments with filters and pagination
+     *
+     * @return Shipment[]
+     */
+    public function findWithFilters(array $filters): array
+    {
+        $qb = $this->createQueryBuilder('s');
+
+        if (!empty($filters['search'])) {
+            $qb->andWhere($qb->expr()->orX(
+                $qb->expr()->like('s.trackingNumber', ':search'),
+                $qb->expr()->like('s.recipientName', ':search'),
+                $qb->expr()->like('s.senderName', ':search')
+            ))->setParameter('search', '%' . $filters['search'] . '%');
+        }
+
+        if (!empty($filters['status'])) {
+            $qb->andWhere('s.status = :status')
+               ->setParameter('status', $filters['status']);
+        }
+
+        if (!empty($filters['courier'])) {
+            $qb->andWhere('s.courierService = :courier')
+               ->setParameter('courier', $filters['courier']);
+        }
+
+        if (!empty($filters['date_from'])) {
+            $qb->andWhere('s.createdAt >= :date_from')
+               ->setParameter('date_from', new \DateTime($filters['date_from']));
+        }
+
+        if (!empty($filters['date_to'])) {
+            $qb->andWhere('s.createdAt <= :date_to')
+               ->setParameter('date_to', new \DateTime($filters['date_to']));
+        }
+
+        $qb->orderBy('s.createdAt', 'DESC');
+
+        if (!empty($filters['limit'])) {
+            $qb->setMaxResults($filters['limit']);
+        }
+
+        if (!empty($filters['page']) && !empty($filters['limit'])) {
+            $offset = ($filters['page'] - 1) * $filters['limit'];
+            $qb->setFirstResult($offset);
+        }
+
+        return $qb->getQuery()->getResult();
+    }
+
+    /**
+     * Count shipments with filters
+     */
+    public function countWithFilters(array $filters): int
+    {
+        $qb = $this->createQueryBuilder('s')
+            ->select('COUNT(s.id)');
+
+        if (!empty($filters['search'])) {
+            $qb->andWhere($qb->expr()->orX(
+                $qb->expr()->like('s.trackingNumber', ':search'),
+                $qb->expr()->like('s.recipientName', ':search'),
+                $qb->expr()->like('s.senderName', ':search')
+            ))->setParameter('search', '%' . $filters['search'] . '%');
+        }
+
+        if (!empty($filters['status'])) {
+            $qb->andWhere('s.status = :status')
+               ->setParameter('status', $filters['status']);
+        }
+
+        if (!empty($filters['courier'])) {
+            $qb->andWhere('s.courierService = :courier')
+               ->setParameter('courier', $filters['courier']);
+        }
+
+        return (int) $qb->getQuery()->getSingleScalarResult();
+    }
+
+    /**
+     * Count delivered shipments today
+     */
+    public function countDeliveredToday(): int
+    {
+        $today = new \DateTime('today');
+        $tomorrow = new \DateTime('tomorrow');
+
+        return (int) $this->createQueryBuilder('s')
+            ->select('COUNT(s.id)')
+            ->andWhere('s.status = :status')
+            ->andWhere('s.deliveredAt >= :today')
+            ->andWhere('s.deliveredAt < :tomorrow')
+            ->setParameter('status', 'delivered')
+            ->setParameter('today', $today)
+            ->setParameter('tomorrow', $tomorrow)
+            ->getQuery()
+            ->getSingleScalarResult();
+    }
+
+    /**
+     * Count delivered shipments in range
+     */
+    public function countDeliveredInRange(\DateTimeInterface $from, \DateTimeInterface $to): int
+    {
+        return (int) $this->createQueryBuilder('s')
+            ->select('COUNT(s.id)')
+            ->andWhere('s.status = :status')
+            ->andWhere('s.deliveredAt >= :from')
+            ->andWhere('s.deliveredAt < :to')
+            ->setParameter('status', 'delivered')
+            ->setParameter('from', $from)
+            ->setParameter('to', $to)
+            ->getQuery()
+            ->getSingleScalarResult();
+    }
+
+    /**
+     * Count created shipments in range
+     */
+    public function countCreatedInRange(\DateTimeInterface $from, \DateTimeInterface $to): int
+    {
+        return (int) $this->createQueryBuilder('s')
+            ->select('COUNT(s.id)')
+            ->andWhere('s.createdAt >= :from')
+            ->andWhere('s.createdAt < :to')
+            ->setParameter('from', $from)
+            ->setParameter('to', $to)
+            ->getQuery()
+            ->getSingleScalarResult();
+    }
+
+    /**
      * Get shipments that need status synchronization from courier
      */
     public function findShipmentsForStatusSync(string $courierService, int $hoursOld = 1): array

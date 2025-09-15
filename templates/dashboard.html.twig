@@ -8,17 +8,158 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@600;700;800&family=Mulish:wght@400;600;700&display=swap" rel="stylesheet">
   <style>
-    :root { --primary:#2F7DFF; --primary-600:#2568d6; --primary-50:#EEF5FF; --accent:#22d3ee; --ink:#0C0212; --muted:#6b7280; --border:#e5e7eb; --bg:#FFFFFF; }
+    :root { 
+      --primary:#2F7DFF; 
+      --primary-600:#2568d6; 
+      --primary-50:#EEF5FF; 
+      --accent:#22d3ee; 
+      --ink:#0C0212; 
+      --muted:#6b7280; 
+      --border:#e5e7eb; 
+      --bg:#FFFFFF;
+    }
+    
     * { box-sizing: border-box; }
+    
     html, body, #root { height: 100%; }
-    body { margin:0; background: linear-gradient(180deg, #f8fbff 0%, #ffffff 40%); color:var(--ink); font-family:'Mulish', system-ui, -apple-system, Segoe UI, Roboto, sans-serif; }
-    h1,h2,h3,.brand { font-family: 'Be Vietnam Pro','Mulish', Arial, sans-serif; }
-    /* Responsive shell */
-    .dash-shell { display:grid; grid-template-columns: 280px 1fr; }
+    
+    body { 
+      margin: 0; 
+      background: linear-gradient(180deg, #f8fbff 0%, #ffffff 40%); 
+      color: var(--ink); 
+      font-family: 'Mulish', system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      overflow-x: hidden;
+    }
+    
+    h1, h2, h3, .brand { 
+      font-family: 'Be Vietnam Pro', 'Mulish', Arial, sans-serif; 
+    }
+    
+    /* Loading spinner animation */
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    
+    /* Responsive shell with improved mobile handling */
+    .dash-shell { 
+      display: grid; 
+      grid-template-columns: 280px 1fr;
+      transition: grid-template-columns 0.3s ease;
+    }
+    
+    /* Enhanced mobile responsiveness */
     @media (max-width: 900px) {
-      .dash-shell { grid-template-columns: 1fr; }
-      .dash-aside { border-bottom: 1px solid var(--border); }
-      .dash-main { border-left: none !important; }
+      .dash-shell { 
+        grid-template-columns: 1fr;
+        position: relative;
+      }
+      
+      .dash-aside {
+        position: fixed;
+        top: 62px;
+        left: 0;
+        bottom: 0;
+        z-index: 50;
+        background: white;
+        box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
+      }
+      
+      .dash-aside.collapsed {
+        transform: translateX(-100%);
+      }
+      
+      .dash-main { 
+        border-left: none !important;
+        padding-left: 14px;
+      }
+    }
+    
+    /* Sidebar interactions */
+    .nav-item:hover {
+      background: var(--primary-50) !important;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(47, 125, 255, 0.15) !important;
+    }
+    
+    .sidebar-toggle:hover {
+      background: var(--primary-50);
+    }
+    
+    /* Quick action hover effects */
+    .quick-action:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 32px rgba(2, 6, 23, 0.1) !important;
+    }
+    
+    /* Smooth transitions for all interactive elements */
+    button, .nav-item, .quick-action {
+      transition: all 0.2s ease;
+    }
+    
+    /* Toast notification entrance animations */
+    @keyframes slideIn {
+      from {
+        transform: translateX(100%);
+        opacity: 0;
+      }
+      to {
+        transform: translateX(0);
+        opacity: 1;
+      }
+    }
+    
+    @keyframes slideOut {
+      from {
+        transform: translateX(0);
+        opacity: 1;
+      }
+      to {
+        transform: translateX(100%);
+        opacity: 0;
+      }
+    }
+    
+    /* Loading states */
+    .loading body {
+      cursor: wait;
+    }
+    
+    .loading-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(255, 255, 255, 0.8);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+    }
+    
+    /* Form enhancements */
+    input:focus, textarea:focus, select:focus {
+      outline: none;
+      border-color: var(--primary-600);
+      box-shadow: 0 0 0 3px var(--primary-50);
+    }
+    
+    /* Accessibility improvements */
+    @media (prefers-reduced-motion: reduce) {
+      * {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+    
+    /* High contrast mode support */
+    @media (prefers-contrast: high) {
+      :root {
+        --border: #000;
+        --muted: #333;
+      }
     }
   </style>
   <meta name="color-scheme" content="light dark">
@@ -30,6 +171,33 @@
       const t = p.get('type');
       if (t) try { localStorage.setItem('user_type', t); } catch (e) {}
     })();
+    
+    // Pass user type and data to React app
+    window.DASHBOARD_CONFIG = {
+      userType: '{{ userType }}',
+      {% if user %}
+      user: {
+        id: {{ user.id }},
+        email: '{{ user.email }}',
+        firstName: '{{ user.firstName }}',
+        lastName: '{{ user.lastName }}',
+        fullName: '{{ user.fullName }}',
+        {% if userType == 'system' %}
+        department: '{{ user.department }}',
+        position: '{{ user.position }}',
+        roles: {{ user.roles|json_encode|raw }},
+        {% else %}
+        customerRole: '{{ user.customerRole }}',
+        customer: {
+          id: {{ user.customer.id }},
+          companyName: '{{ user.customer.companyName }}',
+          email: '{{ user.customer.email }}',
+          type: '{{ user.customer.type }}'
+        }
+        {% endif %}
+      }
+      {% endif %}
+    };
   </script>
 </head>
 <body>

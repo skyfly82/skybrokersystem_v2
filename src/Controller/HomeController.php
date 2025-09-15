@@ -29,11 +29,6 @@ class HomeController extends AbstractController
         return $this->render('auth.html.twig');
     }
 
-    #[Route('/login', name: 'app_login_web', methods: ['GET'])]
-    public function loginWeb(): Response
-    {
-        return $this->render('login.html.twig');
-    }
 
     #[Route('/login/customer', name: 'app_login_customer_web', methods: ['GET'])]
     public function loginCustomerWeb(): Response
@@ -57,10 +52,5 @@ class HomeController extends AbstractController
     public function forgotWeb(): Response
     {
         return $this->render('forgot.html.twig');
-    }
-    #[Route('/dashboard', name: 'app_dashboard', methods: ['GET'])]
-    public function dashboard(): Response
-    {
-        return $this->render('dashboard.html.twig');
     }
 }

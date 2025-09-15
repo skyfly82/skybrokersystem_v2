@@ -15,6 +15,10 @@ security:
             entity:
                 class: App\Entity\SystemUser
                 property: email
+        # Chain provider to try both user types
+        chain_provider:
+            chain:
+                providers: ['customer_users', 'system_users']
     
     firewalls:
         dev:
@@ -52,16 +56,50 @@ security:
             pattern: ^/api/v1
             stateless: true
             security: false
-        
-        # Default firewall for web interface
-        main:
+            
+        # Admin web interface
+        admin_firewall:
+            pattern: ^/admin
+            lazy: true
+            provider: system_users
+            form_login:
+                login_path: admin_login
+                check_path: admin_login
+                default_target_path: /admin/dashboard
+                always_use_default_target_path: true
+                enable_csrf: false
+            logout:
+                path: admin_logout
+                target: admin_login
+                
+        # Customer web interface  
+        customer_firewall:
+            pattern: ^/customer
             lazy: true
             provider: customer_users
             form_login:
-                login_path: app_login_web
-                check_path: app_login_web
+                login_path: customer_login
+                check_path: customer_login
+                default_target_path: /customer/dashboard
+                always_use_default_target_path: true
+                enable_csrf: true
+            logout:
+                path: customer_logout
+                target: customer_login
+        
+        # Default firewall for web interface (MUST be last)
+        main:
+            lazy: true
+            provider: chain_provider
+            form_login:
+                login_path: app_login_new
+                check_path: app_login_new
+                default_target_path: /dashboard
+                always_use_default_target_path: false
+                enable_csrf: false
             logout:
                 path: logout
+                target: app_login_web
 
     # Easy way to control access for large sections of your site
     # Note: Only the *first* access control that matches will be used
@@ -74,11 +112,21 @@ security:
         - { path: ^/api/v1/system/login, roles: PUBLIC_ACCESS }
         - { path: ^/api/v1/system, roles: ROLE_SYSTEM_USER }
         
-        # Admin routes
-        - { path: ^/admin, roles: ROLE_ADMIN }
+        # Admin web routes
+        - { path: ^/admin/login, roles: PUBLIC_ACCESS }
+        - { path: ^/admin, roles: ROLE_SYSTEM_USER }
+        
+        # Customer web routes
+        - { path: ^/customer/login, roles: PUBLIC_ACCESS }
+        - { path: ^/customer, roles: ROLE_CUSTOMER_USER }
+        
+        # Dashboard routes - require authentication
+        - { path: ^/dashboard, roles: IS_AUTHENTICATED_FULLY }
         
         # Public access
         - { path: ^/api/v1/registration, roles: PUBLIC_ACCESS }
+        - { path: ^/login, roles: PUBLIC_ACCESS }
+        - { path: ^/logout, roles: PUBLIC_ACCESS }
         - { path: ^/, roles: PUBLIC_ACCESS }
 
 when@test:

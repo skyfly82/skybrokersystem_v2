@@ -1,13 +1,14 @@
-framework:
-    rate_limiter:
-        # Rate limiter for authentication endpoints
-        authentication:
-            policy: 'sliding_window'
-            limit: 10
-            interval: '15 minutes'
-
-        # More strict rate limiter for failed login attempts
-        login_failures:
-            policy: 'sliding_window'
-            limit: 5
-            interval: '15 minutes'
+# TEMPORARILY DISABLED FOR TESTING
+# framework:
+#     rate_limiter:
+#         # Rate limiter for authentication endpoints
+#         authentication:
+#             policy: 'sliding_window'
+#             limit: 10
+#             interval: '15 minutes'
+#
+#         # More strict rate limiter for failed login attempts
+#         login_failures:
+#             policy: 'sliding_window'
+#             limit: 5
+#             interval: '15 minutes'

@@ -1,0 +1,44 @@
+{#
+    Activity Feed Component
+    
+    Parameters:
+    - activities: Array of activity items (array)
+    - title: Feed title (string)
+    - show_all_link: Optional "show all" link URL (string)
+#}
+
+<div class="bg-white border border-gray-200 rounded-xl p-6 card-shadow">
+    <div class="flex items-center justify-between mb-4">
+        <h3 class="text-lg font-bold text-gray-900">{{ title|default('Ostatnia aktywność') }}</h3>
+        {% if show_all_link %}
+            <a href="{{ show_all_link }}" class="text-blue-600 text-sm font-medium hover:text-blue-700">Zobacz wszystko</a>
+        {% endif %}
+    </div>
+    
+    <div class="space-y-4">
+        {% for activity in activities %}
+            <div class="flex items-center space-x-4 p-3 rounded-lg hover:bg-gray-50">
+                {# Activity Icon #}
+                <div class="w-2 h-2 rounded-full {{ activity.color_class|default('bg-gray-500') }}"></div>
+                
+                {# Activity Content #}
+                <div class="flex-1">
+                    <p class="text-sm font-medium text-gray-900">{{ activity.title }}</p>
+                    {% if activity.description %}
+                        <p class="text-xs text-gray-500">{{ activity.description }}</p>
+                    {% endif %}
+                </div>
+                
+                {# Timestamp #}
+                <span class="text-xs text-gray-500">{{ activity.time }}</span>
+            </div>
+        {% else %}
+            <div class="text-center py-8">
+                <svg class="w-12 h-12 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+                <p class="text-gray-500 text-sm">Brak najnowszej aktywności</p>
+            </div>
+        {% endfor %}
+    </div>
+</div>

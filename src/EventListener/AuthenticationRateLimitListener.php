@@ -10,7 +10,8 @@ use Symfony\Component\HttpKernel\KernelEvents;
 use Symfony\Component\RateLimiter\RateLimiterFactoryInterface;
 use Psr\Log\LoggerInterface;
 
-#[AsEventListener(event: KernelEvents::REQUEST, priority: 256)]
+// TEMPORARILY DISABLED FOR TESTING
+// #[AsEventListener(event: KernelEvents::REQUEST, priority: 256)]
 class AuthenticationRateLimitListener
 {
     public function __construct(

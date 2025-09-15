@@ -1,0 +1,88 @@
+{#
+    Reusable Data Table Component
+    
+    Parameters:
+    - headers: Array of table headers (array)
+    - rows: Array of table rows data (array)
+    - actions: Whether to show actions column (boolean)
+    - title: Optional table title (string)
+    - description: Optional table description (string)
+    - add_button: Optional add button config {text, onclick} (object)
+#}
+
+<div class="bg-white border border-gray-200 rounded-xl p-6 card-shadow">
+    {% if title or add_button %}
+        <div class="flex items-center justify-between mb-6">
+            {% if title %}
+                <div>
+                    <h3 class="text-lg font-bold text-gray-900">{{ title }}</h3>
+                    {% if description %}
+                        <p class="text-sm text-gray-600 mt-1">{{ description }}</p>
+                    {% endif %}
+                </div>
+            {% endif %}
+            
+            {% if add_button %}
+                <button 
+                    {% if add_button.onclick %}onclick="{{ add_button.onclick }}"{% endif %}
+                    class="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors">
+                    {{ add_button.text|default('Dodaj') }}
+                </button>
+            {% endif %}
+        </div>
+    {% endif %}
+    
+    <div class="overflow-x-auto">
+        <table class="w-full">
+            <thead>
+                <tr class="border-b border-gray-200 bg-gray-50">
+                    {% for header in headers %}
+                        <th class="text-left py-3 px-4 text-sm font-bold text-gray-900">{{ header }}</th>
+                    {% endfor %}
+                    {% if actions %}
+                        <th class="text-left py-3 px-4 text-sm font-bold text-gray-900">Akcje</th>
+                    {% endif %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in rows %}
+                    <tr class="{% if not loop.last %}border-b border-gray-200{% endif %} hover:bg-gray-50">
+                        {% for cell in row.cells %}
+                            <td class="py-3 px-4 text-sm {{ cell.class|default('text-gray-600') }}">
+                                {% if cell.type == 'badge' %}
+                                    <span class="px-2 py-1 text-xs font-medium rounded-full {{ cell.badge_class|default('bg-gray-100 text-gray-800') }}">
+                                        {{ cell.value }}
+                                    </span>
+                                {% elseif cell.type == 'link' %}
+                                    <a href="{{ cell.href|default('#') }}" class="text-blue-600 hover:text-blue-800 font-medium">
+                                        {{ cell.value }}
+                                    </a>
+                                {% else %}
+                                    {{ cell.value }}
+                                {% endif %}
+                            </td>
+                        {% endfor %}
+                        
+                        {% if actions and row.actions %}
+                            <td class="py-3 px-4">
+                                {% for action in row.actions %}
+                                    <button 
+                                        {% if action.onclick %}onclick="{{ action.onclick }}"{% endif %}
+                                        class="{{ action.class|default('text-blue-600 hover:text-blue-800 text-sm font-medium mr-3') }}">
+                                        {{ action.text }}
+                                    </button>
+                                {% endfor %}
+                            </td>
+                        {% endif %}
+                    </tr>
+                {% else %}
+                    <tr>
+                        <td colspan="{{ headers|length + (actions ? 1 : 0) }}" class="py-8 px-4 text-center text-gray-500">
+                            Brak danych do wyświetlenia
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>

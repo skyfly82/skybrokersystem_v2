@@ -8,11 +8,12 @@ use App\Repository\SystemUserRepository;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
+use Symfony\Component\Security\Core\User\UserInterface;
 
 #[ORM\Entity(repositoryClass: SystemUserRepository::class)]
 #[ORM\Table(name: 'v2_system_users')]
 #[ORM\UniqueConstraint(name: 'UNIQ_SYSTEM_USER_EMAIL', fields: ['email'])]
-class SystemUser implements User, PasswordAuthenticatedUserInterface
+class SystemUser implements UserInterface, PasswordAuthenticatedUserInterface
 {
     #[ORM\Id]
     #[ORM\GeneratedValue]

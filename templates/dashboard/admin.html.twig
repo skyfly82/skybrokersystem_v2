@@ -1,0 +1,36 @@
+{% extends 'dashboard/base.html.twig' %}
+
+{% block title %}Panel Administracyjny - Sky Broker System{% endblock %}
+
+{% block head %}
+    {# Additional styles for admin dashboard #}
+    <style>
+        .admin-dashboard {
+            --admin-primary: #059669;
+            --admin-primary-hover: #047857;
+        }
+    </style>
+{% endblock %}
+
+{% block javascripts %}
+    <script>
+        // Admin-specific configuration
+        window.DASHBOARD_CONFIG = {
+            ...window.DASHBOARD_CONFIG,
+            features: {
+                userManagement: true,
+                customerManagement: true,
+                orderManagement: true,
+                pricingManagement: true,
+                analytics: true,
+                systemSettings: true
+            },
+            permissions: {
+                canViewAllOrders: true,
+                canManageUsers: true,
+                canModifyPricing: true,
+                canAccessAnalytics: true
+            }
+        };
+    </script>
+{% endblock %}

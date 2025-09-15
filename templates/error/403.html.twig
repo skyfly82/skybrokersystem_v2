@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dostęp zabroniony - Sky Broker System</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f8fafc;
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .error-container {
+            background: white;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            max-width: 500px;
+        }
+        .error-code {
+            font-size: 72px;
+            font-weight: bold;
+            color: #e53e3e;
+            margin-bottom: 20px;
+        }
+        h1 {
+            color: #2d3748;
+            margin-bottom: 16px;
+        }
+        p {
+            color: #718096;
+            margin-bottom: 24px;
+            line-height: 1.6;
+        }
+        .btn {
+            display: inline-block;
+            background: #3182ce;
+            color: white;
+            padding: 12px 24px;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: 600;
+            transition: background 0.2s;
+        }
+        .btn:hover {
+            background: #2c5aa0;
+        }
+    </style>
+</head>
+<body>
+    <div class="error-container">
+        <div class="error-code">403</div>
+        <h1>Dostęp zabroniony</h1>
+        <p>{{ message|default('Nie masz uprawnień do dostępu do tej strony.') }}</p>
+        <a href="/dashboard" class="btn">Powrót do dashboardu</a>
+        <br><br>
+        <a href="/login-new" class="btn" style="background: #38a169;">Zaloguj się ponownie</a>
+    </div>
+</body>
+</html>

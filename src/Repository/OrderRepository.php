@@ -103,11 +103,11 @@ class OrderRepository extends ServiceEntityRepository
         $result = $this->createQueryBuilder('o')
             ->select('
                 COUNT(o.id) as total_orders,
-                COUNT(CASE WHEN o.status = \'pending\' THEN 1 END) as pending_orders,
-                COUNT(CASE WHEN o.status = \'confirmed\' THEN 1 END) as confirmed_orders,
-                COUNT(CASE WHEN o.status = \'shipped\' THEN 1 END) as shipped_orders,
-                COUNT(CASE WHEN o.status = \'delivered\' THEN 1 END) as delivered_orders,
-                COUNT(CASE WHEN o.status = \'canceled\' THEN 1 END) as canceled_orders,
+                SUM(CASE WHEN o.status = \'pending\' THEN 1 ELSE 0 END) as pending_orders,
+                SUM(CASE WHEN o.status = \'confirmed\' THEN 1 ELSE 0 END) as confirmed_orders,
+                SUM(CASE WHEN o.status = \'shipped\' THEN 1 ELSE 0 END) as shipped_orders,
+                SUM(CASE WHEN o.status = \'delivered\' THEN 1 ELSE 0 END) as delivered_orders,
+                SUM(CASE WHEN o.status = \'canceled\' THEN 1 ELSE 0 END) as canceled_orders,
                 SUM(o.totalAmount) as total_value,
                 AVG(o.totalAmount) as average_order_value
             ')
@@ -167,6 +167,21 @@ class OrderRepository extends ServiceEntityRepository
             ->getResult();
 
         return $result;
+    }
+
+    /**
+     * Count orders for a specific period
+     */
+    public function countForPeriod(\DateTimeInterface $from, \DateTimeInterface $to): int
+    {
+        return (int) $this->createQueryBuilder('o')
+            ->select('COUNT(o.id)')
+            ->andWhere('o.createdAt >= :from')
+            ->andWhere('o.createdAt <= :to')
+            ->setParameter('from', $from)
+            ->setParameter('to', $to)
+            ->getQuery()
+            ->getSingleScalarResult();
     }
 
     /**

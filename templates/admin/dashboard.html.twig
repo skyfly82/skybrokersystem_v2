@@ -1,0 +1,891 @@
+{% extends "layouts/admin.html.twig" %}
+
+{% block page_title %}Dashboard{% endblock %}
+{% block page_heading %}Admin Dashboard{% endblock %}
+{% block page_description %}
+    <p class="mt-1 text-sm text-gray-500">Welcome to your administration panel, {{ app.user.fullName }}</p>
+{% endblock %}
+
+{% block page_actions %}
+<div class="flex items-center space-x-3" x-data="{ timeRange: '30d', isExporting: false }">
+    <!-- Time Range Selector -->
+    <div class="relative">
+        <select x-model="timeRange" @change="updateDashboard(timeRange)" class="form-input bg-white border border-gray-300 rounded-xl px-4 py-2 text-sm font-medium text-gray-700 hover:border-gray-400 focus:border-skywave-500 focus:ring-2 focus:ring-skywave-200 appearance-none pr-8 cursor-pointer transition-all duration-200">
+            <option value="7d">Last 7 days</option>
+            <option value="30d" selected>Last 30 days</option>
+            <option value="90d">Last 90 days</option>
+            <option value="1y">Last year</option>
+        </select>
+        <div class="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
+            <svg class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+            </svg>
+        </div>
+    </div>
+
+    <!-- Real-time Toggle -->
+    <button @click="toggleRealTime()" class="btn btn-secondary text-sm" x-data="{ realTime: false }" :class="realTime ? 'bg-skywave-50 text-skywave-700 border-skywave-300' : ''">
+        <svg class="h-4 w-4 mr-2" :class="realTime ? 'text-skywave-600' : 'text-gray-500'" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        <span x-text="realTime ? 'Live Updates ON' : 'Auto Refresh'" class="font-secondary font-medium"></span>
+    </button>
+
+    <!-- Export Button -->
+    <button @click="exportReport()" :disabled="isExporting" class="btn btn-primary text-sm shadow-md hover:shadow-lg transition-shadow duration-200" :class="isExporting ? 'loading' : ''">
+        <svg class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+        </svg>
+        <span x-text="isExporting ? 'Exporting...' : 'Export Report'" class="font-secondary font-semibold"></span>
+    </button>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Statistics Cards -->
+    <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4" x-data="{ stats: { loading: false } }">
+        <!-- Total Customers -->
+        <div class="stat-card skywave fade-in" style="animation-delay: 0.1s">
+            <div class="flex items-start justify-between">
+                <div class="stat-icon skywave">
+                    <svg class="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                    </svg>
+                </div>
+                <div class="flex items-center space-x-1 text-xs" x-data="{ trend: 'up' }">
+                    <svg x-show="trend === 'up'" class="w-4 h-4 text-success-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 17l10-10M17 7v10H7" />
+                    </svg>
+                    <span class="text-success-600 font-medium">+12%</span>
+                </div>
+            </div>
+            <div class="mt-4">
+                <div class="stat-value font-primary">{{ statistics.overview.total_customers|default('1,247') }}</div>
+                <div class="stat-label">Total Customers</div>
+                <div class="mt-3 flex items-center justify-between">
+                    <div class="text-sm text-gray-600">
+                        <span class="font-medium text-success-600">+23</span> this week
+                    </div>
+                    <a href="{{ path('admin_customers') }}" class="text-xs font-medium text-skywave-600 hover:text-skywave-700 transition-colors duration-200">View all →</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Total Orders -->
+        <div class="stat-card success fade-in" style="animation-delay: 0.2s">
+            <div class="flex items-start justify-between">
+                <div class="stat-icon success">
+                    <svg class="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M8 11v1l4 4 4-4v-1M8 11h8" />
+                    </svg>
+                </div>
+                <div class="flex items-center space-x-1 text-xs">
+                    {% set growth = statistics.periods.this_month.order_growth|default(8.2) %}
+                    {% if growth > 0 %}
+                        <svg class="w-4 h-4 text-success-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 17l10-10M17 7v10H7" />
+                        </svg>
+                        <span class="text-success-600 font-medium">+{{ growth }}%</span>
+                    {% else %}
+                        <svg class="w-4 h-4 text-error-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17l-10-10M7 7l10 10v-10" />
+                        </svg>
+                        <span class="text-error-600 font-medium">{{ growth }}%</span>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="mt-4">
+                <div class="stat-value font-primary">{{ statistics.periods.this_month.orders|default('542') }}</div>
+                <div class="stat-label">Orders This Month</div>
+                <div class="mt-3 flex items-center justify-between">
+                    <div class="text-sm text-gray-600">
+                        <span class="font-medium text-success-600">+{{ (statistics.periods.this_month.orders|default(542) * growth / 100)|round }}</span> from last month
+                    </div>
+                    <div class="w-12 h-2 bg-gray-200 rounded-full overflow-hidden">
+                        <div class="h-full bg-gradient-to-r from-success-400 to-success-600 rounded-full" style="width: {{ (growth > 0 ? growth : 0) }}%"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Active Shipments -->
+        <div class="stat-card warning fade-in" style="animation-delay: 0.3s">
+            <div class="flex items-start justify-between">
+                <div class="stat-icon warning">
+                    <svg class="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 14v3m4-3v3m4-3v3M3 21h18M3 10h18M3 7l9-4 9 4M4 10h16v11H4V10z" />
+                    </svg>
+                </div>
+                <div class="w-3 h-3 bg-warning-400 rounded-full animate-pulse"></div>
+            </div>
+            <div class="mt-4">
+                <div class="stat-value font-primary">{{ statistics.overview.total_shipments|default('1,834') }}</div>
+                <div class="stat-label">Active Shipments</div>
+                <div class="mt-3 flex items-center justify-between">
+                    <div class="text-sm text-gray-600">
+                        <span class="font-medium text-warning-600">{{ statistics.shipments.in_transit|default('127') }}</span> in transit
+                    </div>
+                    <a href="{{ path('admin_shipments') }}" class="text-xs font-medium text-skywave-600 hover:text-skywave-700 transition-colors duration-200">Track all →</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Monthly Revenue -->
+        <div class="stat-card info fade-in" style="animation-delay: 0.4s" x-data="{ revenue: '{{ statistics.periods.this_month.revenue|default(87540.50)|number_format(2) }}', growth: {{ statistics.periods.this_month.revenue_growth|default(15.8) }} }">
+            <div class="flex items-start justify-between">
+                <div class="stat-icon skywave">
+                    <svg class="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
+                    </svg>
+                </div>
+                <div class="flex items-center space-x-1 text-xs">
+                    <svg x-show="growth > 0" class="w-4 h-4 text-success-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 17l10-10M17 7v10H7" />
+                    </svg>
+                    <span class="font-medium" :class="growth > 0 ? 'text-success-600' : 'text-error-600'" x-text="growth > 0 ? '+' + growth + '%' : growth + '%'"></span>
+                </div>
+            </div>
+            <div class="mt-4">
+                <div class="stat-value font-primary" x-text="revenue + ' PLN'"></div>
+                <div class="stat-label">Monthly Revenue</div>
+                <div class="mt-3 flex items-center justify-between">
+                    <div class="text-sm text-gray-600">
+                        <span class="font-medium text-skywave-600">{{ statistics.periods.today.revenue|default(2840.25)|number_format(2) }} PLN</span> today
+                    </div>
+                    <a href="{{ path('admin_payments') }}" class="text-xs font-medium text-skywave-600 hover:text-skywave-700 transition-colors duration-200">View details →</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts and Recent Activity -->
+    <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
+        <!-- Revenue Chart -->
+        <div class="xl:col-span-2">
+            <div class="chart-container fade-in" style="animation-delay: 0.5s" x-data="{ chartPeriod: '30d', chartType: 'revenue' }">
+                <div class="chart-header">
+                    <div class="flex items-center justify-between">
+                        <h3 class="chart-title font-secondary">Revenue & Orders Analytics</h3>
+                        <div class="flex items-center space-x-3">
+                            <!-- Chart Type Toggle -->
+                            <div class="flex bg-gray-100 rounded-lg p-1">
+                                <button @click="chartType = 'revenue'; updateChart('revenue', chartPeriod)" :class="chartType === 'revenue' ? 'bg-white shadow-sm' : 'hover:bg-gray-200'" class="px-3 py-1 text-xs font-medium rounded-md transition-all duration-200">
+                                    Revenue
+                                </button>
+                                <button @click="chartType = 'orders'; updateChart('orders', chartPeriod)" :class="chartType === 'orders' ? 'bg-white shadow-sm' : 'hover:bg-gray-200'" class="px-3 py-1 text-xs font-medium rounded-md transition-all duration-200">
+                                    Orders
+                                </button>
+                            </div>
+
+                            <!-- Time Period Controls -->
+                            <div class="chart-controls">
+                                <button @click="chartPeriod = '7d'; updateChart(chartType, '7d')" :class="chartPeriod === '7d' ? 'chart-control active' : 'chart-control'">7d</button>
+                                <button @click="chartPeriod = '30d'; updateChart(chartType, '30d')" :class="chartPeriod === '30d' ? 'chart-control active' : 'chart-control'">30d</button>
+                                <button @click="chartPeriod = '90d'; updateChart(chartType, '90d')" :class="chartPeriod === '90d' ? 'chart-control active' : 'chart-control'">90d</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Chart Summary Stats -->
+                    <div class="grid grid-cols-3 gap-4 mt-4 p-4 bg-gray-50 rounded-lg">
+                        <div class="text-center">
+                            <div class="text-2xl font-bold text-skywave-600 font-primary" id="chart-total">87,540.50 PLN</div>
+                            <div class="text-xs text-gray-500 uppercase tracking-wide">Total Revenue</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-2xl font-bold text-success-600 font-primary" id="chart-growth">+15.8%</div>
+                            <div class="text-xs text-gray-500 uppercase tracking-wide">Growth</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-2xl font-bold text-warning-600 font-primary" id="chart-avg">2,918 PLN</div>
+                            <div class="text-xs text-gray-500 uppercase tracking-wide">Daily Average</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="relative">
+                    <div class="h-80">
+                        <canvas id="main-chart" class="w-full h-full"></canvas>
+                    </div>
+
+                    <!-- Chart Loading State -->
+                    <div id="chart-loading" class="absolute inset-0 bg-white bg-opacity-90 hidden items-center justify-center">
+                        <div class="flex items-center space-x-3">
+                            <div class="loading w-6 h-6"></div>
+                            <span class="text-gray-600 font-medium">Loading chart data...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Activity & Quick Stats -->
+        <div class="space-y-6">
+            <!-- Recent Activity -->
+            <div class="dashboard-card fade-in" style="animation-delay: 0.6s">
+                <div class="dashboard-card-header">
+                    <div class="flex items-center justify-between">
+                        <h3 class="text-lg font-semibold text-gray-900 font-secondary">Live Activity</h3>
+                        <div class="flex items-center space-x-2">
+                            <div class="w-2 h-2 bg-success-400 rounded-full animate-pulse"></div>
+                            <span class="text-xs text-gray-500 font-medium">Real-time</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="dashboard-card-body">
+                    <div class="space-y-4 max-h-80 overflow-y-auto">
+                        {% set sample_activities = [
+                            { type: 'order', title: 'New order created', description: 'Order #ORD-2024-0156 from Kowalski Sp. z o.o.', time: '2 min ago', icon: 'shopping-bag', color: 'skywave' },
+                            { type: 'payment', title: 'Payment received', description: '2,450.00 PLN for shipment #SHP-2024-0298', time: '5 min ago', icon: 'credit-card', color: 'success' },
+                            { type: 'shipment', title: 'Shipment delivered', description: 'Package delivered to Warsaw, ul. Marszałkowska 142', time: '8 min ago', icon: 'truck', color: 'warning' },
+                            { type: 'user', title: 'New customer registered', description: 'TechFlow Solutions joined the platform', time: '12 min ago', icon: 'user-plus', color: 'skywave' },
+                            { type: 'alert', title: 'Delivery delay alert', description: 'Shipment #SHP-2024-0295 delayed by weather', time: '15 min ago', icon: 'exclamation', color: 'error' },
+                            { type: 'system', title: 'System maintenance', description: 'Scheduled maintenance completed successfully', time: '1h ago', icon: 'cog', color: 'success' }
+                        ] %}
+
+                        {% for activity in sample_activities %}
+                        <div class="flex items-start space-x-3 p-3 rounded-lg hover:bg-gray-50 transition-colors duration-150 cursor-pointer slide-up" style="animation-delay: {{ loop.index * 0.1 }}s">
+                            <div class="flex-shrink-0">
+                                <div class="w-10 h-10 bg-gradient-to-br from-{{ activity.color }}-400 to-{{ activity.color }}-600 rounded-xl flex items-center justify-center shadow-sm">
+                                    {% if activity.icon == 'shopping-bag' %}
+                                        <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M8 11v1l4 4 4-4v-1M8 11h8" />
+                                        </svg>
+                                    {% elseif activity.icon == 'credit-card' %}
+                                        <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                                        </svg>
+                                    {% elseif activity.icon == 'truck' %}
+                                        <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 14v3m4-3v3m4-3v3M3 21h18M3 10h18M3 7l9-4 9 4M4 10h16v11H4V10z" />
+                                        </svg>
+                                    {% elseif activity.icon == 'user-plus' %}
+                                        <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+                                        </svg>
+                                    {% elseif activity.icon == 'exclamation' %}
+                                        <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.07 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                                        </svg>
+                                    {% else %}
+                                        <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                                        </svg>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <div class="flex items-center justify-between">
+                                    <p class="text-sm font-medium text-gray-900 truncate">{{ activity.title }}</p>
+                                    <p class="text-xs text-gray-500 whitespace-nowrap ml-2">{{ activity.time }}</p>
+                                </div>
+                                <p class="text-sm text-gray-600 truncate mt-1">{{ activity.description }}</p>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                <div class="dashboard-card-footer">
+                    <button class="w-full btn btn-secondary text-sm" onclick="loadMoreActivity()">
+                        <svg class="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                        </svg>
+                        Load More Activity
+                    </button>
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="dashboard-card fade-in" style="animation-delay: 0.7s">
+                <div class="dashboard-card-header">
+                    <h3 class="text-lg font-semibold text-gray-900 font-secondary">Quick Actions</h3>
+                </div>
+                <div class="dashboard-card-body">
+                    <div class="grid grid-cols-1 gap-3">
+                        <a href="{{ path('admin_customers') }}" class="flex items-center p-3 bg-gradient-to-r from-skywave-50 to-skywave-100 rounded-lg hover:from-skywave-100 hover:to-skywave-200 transition-all duration-200 group">
+                            <div class="w-10 h-10 bg-skywave-500 rounded-lg flex items-center justify-center mr-3 group-hover:bg-skywave-600 transition-colors duration-200">
+                                <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                                </svg>
+                            </div>
+                            <div>
+                                <div class="font-medium text-gray-900">Manage Customers</div>
+                                <div class="text-sm text-gray-600">View and edit customer profiles</div>
+                            </div>
+                        </a>
+
+                        <a href="{{ path('admin_shipments') }}" class="flex items-center p-3 bg-gradient-to-r from-warning-50 to-warning-100 rounded-lg hover:from-warning-100 hover:to-warning-200 transition-all duration-200 group">
+                            <div class="w-10 h-10 bg-warning-500 rounded-lg flex items-center justify-center mr-3 group-hover:bg-warning-600 transition-colors duration-200">
+                                <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 14v3m4-3v3m4-3v3M3 21h18M3 10h18M3 7l9-4 9 4M4 10h16v11H4V10z" />
+                                </svg>
+                            </div>
+                            <div>
+                                <div class="font-medium text-gray-900">Track Shipments</div>
+                                <div class="text-sm text-gray-600">Monitor delivery status</div>
+                            </div>
+                        </a>
+
+                        <a href="{{ path('admin_notifications') }}" class="flex items-center p-3 bg-gradient-to-r from-success-50 to-success-100 rounded-lg hover:from-success-100 hover:to-success-200 transition-all duration-200 group">
+                            <div class="w-10 h-10 bg-success-500 rounded-lg flex items-center justify-center mr-3 group-hover:bg-success-600 transition-colors duration-200">
+                                <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10m0 0V6a2 2 0 00-2-2H9a2 2 0 00-2 2v2m10 0l2 2-2 2M7 8L5 10l2 2" />
+                                </svg>
+                            </div>
+                            <div>
+                                <div class="font-medium text-gray-900">Send Notifications</div>
+                                <div class="text-sm text-gray-600">Broadcast updates to customers</div>
+                            </div>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Performance Overview & System Status -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Shipment Status Overview -->
+        <div class="dashboard-card fade-in" style="animation-delay: 0.8s">
+            <div class="dashboard-card-header">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-lg font-semibold text-gray-900 font-secondary">Shipment Status</h3>
+                    <div class="w-3 h-3 bg-success-400 rounded-full animate-pulse"></div>
+                </div>
+            </div>
+            <div class="dashboard-card-body">
+                <div class="space-y-4">
+                    {% set shipment_statuses = [
+                        { label: 'Pending Pickup', value: statistics.shipments.pending|default(28), color: 'warning', icon: 'clock' },
+                        { label: 'In Transit', value: statistics.shipments.in_transit|default(127), color: 'skywave', icon: 'truck' },
+                        { label: 'Out for Delivery', value: 43, color: 'warning', icon: 'map-pin' },
+                        { label: 'Delivered', value: statistics.shipments.delivered|default(2847), color: 'success', icon: 'check-circle' },
+                        { label: 'Failed/Returned', value: statistics.shipments.failed|default(12), color: 'error', icon: 'x-circle' }
+                    ] %}
+
+                    {% for status in shipment_statuses %}
+                    <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors duration-150">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-8 h-8 bg-{{ status.color }}-100 rounded-lg flex items-center justify-center">
+                                {% if status.icon == 'clock' %}
+                                    <svg class="w-4 h-4 text-{{ status.color }}-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                {% elseif status.icon == 'truck' %}
+                                    <svg class="w-4 h-4 text-{{ status.color }}-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 14v3m4-3v3m4-3v3M3 21h18M3 10h18M3 7l9-4 9 4M4 10h16v11H4V10z" />
+                                    </svg>
+                                {% elseif status.icon == 'map-pin' %}
+                                    <svg class="w-4 h-4 text-{{ status.color }}-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                                    </svg>
+                                {% elseif status.icon == 'check-circle' %}
+                                    <svg class="w-4 h-4 text-{{ status.color }}-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                {% else %}
+                                    <svg class="w-4 h-4 text-{{ status.color }}-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                {% endif %}
+                            </div>
+                            <span class="text-sm font-medium text-gray-700">{{ status.label }}</span>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <span class="text-lg font-bold text-{{ status.color }}-600 font-primary">{{ status.value }}</span>
+                            <div class="w-12 h-2 bg-gray-200 rounded-full overflow-hidden">
+                                <div class="h-full bg-{{ status.color }}-500 rounded-full" style="width: {{ (status.value / 3000 * 100)|round }}%"></div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Today's Performance -->
+        <div class="dashboard-card fade-in" style="animation-delay: 0.9s">
+            <div class="dashboard-card-header">
+                <h3 class="text-lg font-semibold text-gray-900 font-secondary">Today's Performance</h3>
+                <div class="text-sm text-gray-500">{{ 'now'|date('l, F j, Y') }}</div>
+            </div>
+            <div class="dashboard-card-body">
+                <div class="space-y-4">
+                    {% set today_metrics = [
+                        { label: 'New Orders', value: statistics.periods.today.orders|default(23), target: 30, color: 'skywave', prefix: '', suffix: '' },
+                        { label: 'Revenue', value: statistics.periods.today.revenue|default(2840.25), target: 3000, color: 'success', prefix: '', suffix: ' PLN' },
+                        { label: 'Deliveries', value: statistics.shipments.delivered_today|default(45), target: 50, color: 'warning', prefix: '', suffix: '' },
+                        { label: 'Customer Satisfaction', value: 4.8, target: 5.0, color: 'success', prefix: '', suffix: '/5.0' }
+                    ] %}
+
+                    {% for metric in today_metrics %}
+                    <div class="bg-gradient-to-r from-{{ metric.color }}-50 to-{{ metric.color }}-100 p-4 rounded-lg">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-sm font-medium text-gray-700">{{ metric.label }}</span>
+                            <div class="text-xs text-{{ metric.color }}-600 font-medium">
+                                {{ ((metric.value / metric.target) * 100)|round }}% of target
+                            </div>
+                        </div>
+                        <div class="flex items-end justify-between">
+                            <div class="text-2xl font-bold text-{{ metric.color }}-700 font-primary">
+                                {{ metric.prefix }}{{ metric.value|number_format(metric.suffix == '/5.0' ? 1 : (metric.suffix == ' PLN' ? 2 : 0)) }}{{ metric.suffix }}
+                            </div>
+                            <div class="w-16 h-2 bg-{{ metric.color }}-200 rounded-full overflow-hidden">
+                                <div class="h-full bg-{{ metric.color }}-600 rounded-full transition-all duration-500" style="width: {{ ((metric.value / metric.target) * 100)|round }}%"></div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- System Status & Alerts -->
+        <div class="dashboard-card fade-in" style="animation-delay: 1.0s">
+            <div class="dashboard-card-header">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-lg font-semibold text-gray-900 font-secondary">System Status</h3>
+                    <span class="px-2 py-1 bg-success-100 text-success-800 text-xs font-medium rounded-full">All Systems Operational</span>
+                </div>
+            </div>
+            <div class="dashboard-card-body">
+                <div class="space-y-4">
+                    {% set system_metrics = [
+                        { name: 'API Response Time', status: 'excellent', value: '142ms', color: 'success' },
+                        { name: 'Database Performance', status: 'good', value: '98.7%', color: 'success' },
+                        { name: 'Server Uptime', status: 'excellent', value: '99.9%', color: 'success' },
+                        { name: 'Payment Gateway', status: 'operational', value: 'Online', color: 'success' },
+                        { name: 'SMS Service', status: 'warning', value: 'Degraded', color: 'warning' },
+                        { name: 'Email Service', status: 'excellent', value: 'Online', color: 'success' }
+                    ] %}
+
+                    {% for metric in system_metrics %}
+                    <div class="flex items-center justify-between p-2 hover:bg-gray-50 rounded-lg transition-colors duration-150">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-2 h-2 bg-{{ metric.color }}-500 rounded-full"></div>
+                            <span class="text-sm font-medium text-gray-700">{{ metric.name }}</span>
+                        </div>
+                        <span class="text-sm text-{{ metric.color }}-600 font-medium">{{ metric.value }}</span>
+                    </div>
+                    {% endfor %}
+                </div>
+
+                <!-- Recent Alerts -->
+                <div class="mt-6 pt-4 border-t border-gray-200">
+                    <h4 class="text-sm font-semibold text-gray-900 mb-3">Recent Alerts</h4>
+                    <div class="space-y-2">
+                        <div class="flex items-start space-x-2 p-2 bg-warning-50 rounded-lg">
+                            <div class="w-2 h-2 bg-warning-500 rounded-full mt-1.5"></div>
+                            <div class="flex-1">
+                                <p class="text-xs font-medium text-warning-800">SMS delivery delays</p>
+                                <p class="text-xs text-warning-600">2 mins ago</p>
+                            </div>
+                        </div>
+                        <div class="flex items-start space-x-2 p-2 bg-success-50 rounded-lg">
+                            <div class="w-2 h-2 bg-success-500 rounded-full mt-1.5"></div>
+                            <div class="flex-1">
+                                <p class="text-xs font-medium text-success-800">Database backup completed</p>
+                                <p class="text-xs text-success-600">15 mins ago</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Enhanced Dashboard JavaScript with Modern UI Features
+
+// Global Dashboard Controller
+const Dashboard = {
+    charts: {},
+    realTimeEnabled: false,
+    updateInterval: null,
+
+    init() {
+        this.initializeCharts();
+        this.setupEventListeners();
+        this.startPerformanceMonitoring();
+        console.log('🚀 Sky Broker Admin Dashboard initialized');
+    },
+
+    // Chart Management
+    initializeCharts() {
+        this.createMainChart();
+        this.createMiniCharts();
+    },
+
+    createMainChart() {
+        const ctx = document.getElementById('main-chart');
+        if (!ctx) return;
+
+        // Generate sample data for the chart
+        const labels = this.generateDateLabels(30);
+        const revenueData = this.generateSampleData(30, 1000, 3000);
+        const ordersData = this.generateSampleData(30, 10, 50);
+
+        this.charts.main = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [
+                    {
+                        label: 'Revenue (PLN)',
+                        data: revenueData,
+                        borderColor: 'rgb(47, 125, 255)',
+                        backgroundColor: 'rgba(47, 125, 255, 0.1)',
+                        borderWidth: 3,
+                        fill: true,
+                        tension: 0.4,
+                        pointBackgroundColor: 'rgb(47, 125, 255)',
+                        pointBorderColor: '#fff',
+                        pointBorderWidth: 2,
+                        pointRadius: 4,
+                        pointHoverRadius: 6
+                    },
+                    {
+                        label: 'Orders',
+                        data: ordersData,
+                        borderColor: 'rgb(16, 185, 129)',
+                        backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                        borderWidth: 3,
+                        fill: false,
+                        tension: 0.4,
+                        pointBackgroundColor: 'rgb(16, 185, 129)',
+                        pointBorderColor: '#fff',
+                        pointBorderWidth: 2,
+                        pointRadius: 4,
+                        pointHoverRadius: 6,
+                        yAxisID: 'orders'
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: {
+                    mode: 'index',
+                    intersect: false,
+                },
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                        titleColor: '#fff',
+                        bodyColor: '#fff',
+                        borderColor: 'rgba(47, 125, 255, 0.3)',
+                        borderWidth: 1,
+                        cornerRadius: 8,
+                        displayColors: true,
+                        callbacks: {
+                            title: function(tooltipItems) {
+                                return tooltipItems[0].label;
+                            },
+                            label: function(context) {
+                                let label = context.dataset.label || '';
+                                if (label) {
+                                    label += ': ';
+                                }
+                                if (context.datasetIndex === 0) {
+                                    label += context.parsed.y.toFixed(2) + ' PLN';
+                                } else {
+                                    label += context.parsed.y + ' orders';
+                                }
+                                return label;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        display: true,
+                        grid: {
+                            display: false
+                        },
+                        ticks: {
+                            font: {
+                                family: 'Be Vietnam Pro'
+                            }
+                        }
+                    },
+                    y: {
+                        display: true,
+                        position: 'left',
+                        title: {
+                            display: true,
+                            text: 'Revenue (PLN)',
+                            font: {
+                                family: 'Be Vietnam Pro',
+                                weight: '500'
+                            }
+                        },
+                        grid: {
+                            color: 'rgba(0, 0, 0, 0.05)'
+                        },
+                        ticks: {
+                            callback: function(value) {
+                                return value.toFixed(0) + ' PLN';
+                            },
+                            font: {
+                                family: 'Be Vietnam Pro'
+                            }
+                        }
+                    },
+                    orders: {
+                        type: 'linear',
+                        display: true,
+                        position: 'right',
+                        title: {
+                            display: true,
+                            text: 'Orders',
+                            font: {
+                                family: 'Be Vietnam Pro',
+                                weight: '500'
+                            }
+                        },
+                        grid: {
+                            drawOnChartArea: false,
+                        },
+                        ticks: {
+                            font: {
+                                family: 'Be Vietnam Pro'
+                            }
+                        }
+                    }
+                },
+                elements: {
+                    point: {
+                        hoverRadius: 8
+                    }
+                },
+                animation: {
+                    duration: 1500,
+                    easing: 'easeOutQuart'
+                }
+            }
+        });
+    },
+
+    // Event Listeners
+    setupEventListeners() {
+        // Real-time toggle
+        window.toggleRealTime = () => {
+            this.realTimeEnabled = !this.realTimeEnabled;
+            if (this.realTimeEnabled) {
+                this.startRealTimeUpdates();
+                this.showToast('Real-time updates enabled', 'success');
+            } else {
+                this.stopRealTimeUpdates();
+                this.showToast('Real-time updates disabled', 'info');
+            }
+        };
+
+        // Export functionality
+        window.exportReport = () => {
+            // Simulate export process
+            const button = event.target.closest('button');
+            button.classList.add('loading');
+
+            setTimeout(() => {
+                button.classList.remove('loading');
+                this.showToast('Report exported successfully', 'success');
+                // Here you would trigger actual export
+                console.log('Exporting dashboard report...');
+            }, 2000);
+        };
+
+        // Dashboard updates
+        window.updateDashboard = (period) => {
+            this.showChartLoading(true);
+            setTimeout(() => {
+                this.updateChartData(period);
+                this.showChartLoading(false);
+                this.showToast(`Dashboard updated for ${period}`, 'info');
+            }, 1500);
+        };
+
+        // Chart updates
+        window.updateChart = (type, period) => {
+            console.log(`Updating chart: ${type} for ${period}`);
+            this.updateChartData(period, type);
+        };
+
+        // Activity loader
+        window.loadMoreActivity = () => {
+            const button = event.target.closest('button');
+            button.classList.add('loading');
+
+            setTimeout(() => {
+                button.classList.remove('loading');
+                this.showToast('More activities loaded', 'success');
+            }, 1000);
+        };
+    },
+
+    // Real-time Updates
+    startRealTimeUpdates() {
+        this.updateInterval = setInterval(() => {
+            this.fetchLiveData();
+        }, 30000); // Update every 30 seconds
+    },
+
+    stopRealTimeUpdates() {
+        if (this.updateInterval) {
+            clearInterval(this.updateInterval);
+            this.updateInterval = null;
+        }
+    },
+
+    fetchLiveData() {
+        // Simulate fetching live data
+        console.log('📊 Fetching live dashboard data...');
+        // Update statistics cards with new data
+        this.animateCounters();
+    },
+
+    // UI Helpers
+    showChartLoading(show) {
+        const loader = document.getElementById('chart-loading');
+        if (loader) {
+            if (show) {
+                loader.classList.remove('hidden');
+                loader.classList.add('flex');
+            } else {
+                loader.classList.add('hidden');
+                loader.classList.remove('flex');
+            }
+        }
+    },
+
+    showToast(message, type = 'info') {
+        // Create toast notification
+        const toast = document.createElement('div');
+        toast.className = `toast ${type} scale-in`;
+        toast.innerHTML = `
+            <div class="flex items-center space-x-3">
+                <div class="flex-shrink-0">
+                    ${this.getToastIcon(type)}
+                </div>
+                <div class="flex-1">
+                    <p class="text-sm font-medium text-gray-900">${message}</p>
+                </div>
+                <button onclick="this.parentElement.parentElement.remove()" class="text-gray-400 hover:text-gray-600">
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+        `;
+
+        const container = document.getElementById('toast-container');
+        if (container) {
+            container.appendChild(toast);
+
+            // Auto remove after 5 seconds
+            setTimeout(() => {
+                if (toast.parentElement) {
+                    toast.remove();
+                }
+            }, 5000);
+        }
+    },
+
+    getToastIcon(type) {
+        const icons = {
+            success: '<svg class="w-5 h-5 text-success-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>',
+            error: '<svg class="w-5 h-5 text-error-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>',
+            warning: '<svg class="w-5 h-5 text-warning-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.07 16.5c-.77.833.192 2.5 1.732 2.5z" /></svg>',
+            info: '<svg class="w-5 h-5 text-skywave-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>'
+        };
+        return icons[type] || icons.info;
+    },
+
+    animateCounters() {
+        // Animate counter numbers
+        const counters = document.querySelectorAll('.stat-value');
+        counters.forEach(counter => {
+            const target = parseFloat(counter.textContent.replace(/[^\d.-]/g, ''));
+            let current = 0;
+            const increment = target / 50;
+            const timer = setInterval(() => {
+                current += increment;
+                if (current >= target) {
+                    current = target;
+                    clearInterval(timer);
+                }
+                counter.textContent = this.formatNumber(current, counter.textContent.includes('PLN'));
+            }, 20);
+        });
+    },
+
+    formatNumber(num, isCurrency = false) {
+        const formatted = num.toFixed(isCurrency ? 2 : 0);
+        return isCurrency ? `${formatted}` : formatted;
+    },
+
+    // Performance Monitoring
+    startPerformanceMonitoring() {
+        // Monitor page performance
+        if ('performance' in window) {
+            const perfData = performance.getEntriesByType('navigation')[0];
+            console.log(`⚡ Dashboard loaded in ${Math.round(perfData.loadEventEnd - perfData.loadEventStart)}ms`);
+        }
+    },
+
+    // Data Generators (for demo purposes)
+    generateDateLabels(days) {
+        const labels = [];
+        const today = new Date();
+        for (let i = days - 1; i >= 0; i--) {
+            const date = new Date(today);
+            date.setDate(date.getDate() - i);
+            labels.push(date.toLocaleDateString('pl-PL', { month: 'short', day: 'numeric' }));
+        }
+        return labels;
+    },
+
+    generateSampleData(count, min, max) {
+        return Array.from({ length: count }, () => {
+            return Math.random() * (max - min) + min;
+        });
+    },
+
+    updateChartData(period, type = 'revenue') {
+        if (this.charts.main) {
+            // Generate new data based on period
+            const days = period === '7d' ? 7 : period === '30d' ? 30 : 90;
+            const newLabels = this.generateDateLabels(days);
+            const newData = type === 'revenue'
+                ? this.generateSampleData(days, 800, 3500)
+                : this.generateSampleData(days, 5, 60);
+
+            this.charts.main.data.labels = newLabels;
+            this.charts.main.data.datasets[0].data = newData;
+            this.charts.main.update('active');
+        }
+    }
+};
+
+// Initialize Dashboard when DOM is ready
+document.addEventListener('DOMContentLoaded', function() {
+    Dashboard.init();
+
+    // Add some visual flair
+    setTimeout(() => {
+        Dashboard.animateCounters();
+    }, 500);
+});
+
+// Cleanup on page unload
+window.addEventListener('beforeunload', function() {
+    Dashboard.stopRealTimeUpdates();
+});
+
+</script>
+{% endblock %}

@@ -33,7 +33,7 @@ class SecurityHeadersListener
             // Web pages: align with ImportMap and Google Fonts usage
             $headers->set('Content-Security-Policy', implode('; ', [
                 "default-src 'self'",
-                "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://ga.jspm.io",
+                "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://ga.jspm.io https://cdn.tailwindcss.com https://unpkg.com",
                 "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
                 "img-src 'self' data: https:",
                 "font-src 'self' data: https: https://fonts.gstatic.com",

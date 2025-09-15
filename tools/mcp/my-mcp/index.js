@@ -1,7 +1,7 @@
+#!/usr/bin/env node
 // tools/mcp/my-mcp/index.js
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import { z } from "zod";
 import { resolve } from "node:path";
 import { readFile } from "node:fs/promises";
 
@@ -16,7 +16,13 @@ server.registerTool(
   {
     title: "Echo text",
     description: "Zwraca to co podasz.",
-    inputSchema: { text: z.string() },
+    inputSchema: {
+      type: "object",
+      properties: {
+        text: { type: "string" }
+      },
+      required: ["text"]
+    },
   },
   async ({ text }) => ({ content: [{ type: "text", text }] })
 );
@@ -26,7 +32,14 @@ server.registerTool(
   "read_file",
   {
     title: "Read file relative to project root (RO)",
-    inputSchema: { path: z.string().describe("np. README.md lub src/index.ts") },
+    description: "Read a file from the project directory",
+    inputSchema: {
+      type: "object",
+      properties: {
+        path: { type: "string", description: "np. README.md lub src/index.ts" }
+      },
+      required: ["path"]
+    },
   },
   async ({ path }) => {
     const full = safe(path);
@@ -35,5 +48,14 @@ server.registerTool(
   }
 );
 
-const transport = new StdioServerTransport();
-await server.connect(transport);
+async function main() {
+  try {
+    const transport = new StdioServerTransport();
+    await server.connect(transport);
+  } catch (error) {
+    console.error("Error starting MCP server:", error);
+    process.exit(1);
+  }
+}
+
+main().catch(console.error);

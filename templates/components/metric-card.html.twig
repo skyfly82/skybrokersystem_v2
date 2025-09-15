@@ -1,0 +1,65 @@
+{# Metric Card Component #}
+{% set value = value|default('0') %}
+{% set label = label|default('Metric') %}
+{% set icon = icon|default('') %}
+{% set color = color|default('blue') %}
+{% set change = change|default(null) %}
+{% set changeType = changeType|default('neutral') %}
+
+{% set colorClasses = {
+    'blue': 'text-blue-600 bg-blue-50 border-blue-200',
+    'green': 'text-green-600 bg-green-50 border-green-200',
+    'yellow': 'text-yellow-600 bg-yellow-50 border-yellow-200',
+    'red': 'text-red-600 bg-red-50 border-red-200',
+    'purple': 'text-purple-600 bg-purple-50 border-purple-200',
+    'gray': 'text-gray-600 bg-gray-50 border-gray-200'
+} %}
+
+{% set changeClasses = {
+    'increase': 'text-green-600',
+    'decrease': 'text-red-600',
+    'neutral': 'text-gray-500'
+} %}
+
+<div class="bg-white overflow-hidden shadow rounded-lg border {{ colorClasses[color]|split(' ')[2] }}">
+    <div class="p-5">
+        <div class="flex items-center">
+            {% if icon %}
+            <div class="flex-shrink-0">
+                <div class="w-8 h-8 {{ colorClasses[color]|split(' ')[1] }} rounded-md flex items-center justify-center">
+                    {{ icon|raw }}
+                </div>
+            </div>
+            {% endif %}
+            <div class="ml-5 w-0 flex-1">
+                <dl>
+                    <dt class="text-sm font-medium {{ colorClasses[color]|split(' ')[0] }} truncate">{{ label }}</dt>
+                    <dd class="flex items-baseline">
+                        <div class="text-2xl font-semibold text-gray-900">{{ value }}</div>
+                        {% if change %}
+                        <div class="ml-2 flex items-baseline text-sm font-medium {{ changeClasses[changeType] }}">
+                            {% if changeType == 'increase' %}
+                                <svg class="self-center flex-shrink-0 h-4 w-4 text-green-500" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M5.293 9.707a1 1 0 010-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 01-1.414 1.414L10 6.414 6.707 9.707a1 1 0 01-1.414 0z" clip-rule="evenodd" />
+                                </svg>
+                            {% elseif changeType == 'decrease' %}
+                                <svg class="self-center flex-shrink-0 h-4 w-4 text-red-500" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M14.707 10.293a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 111.414-1.414L10 13.586l3.293-3.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                                </svg>
+                            {% endif %}
+                            <span class="ml-1">{{ change }}</span>
+                        </div>
+                        {% endif %}
+                    </dd>
+                </dl>
+            </div>
+        </div>
+    </div>
+    {% if description %}
+    <div class="bg-gray-50 px-5 py-3">
+        <div class="text-sm">
+            <span class="text-gray-500">{{ description }}</span>
+        </div>
+    </div>
+    {% endif %}
+</div>
