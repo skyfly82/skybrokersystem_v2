@@ -1,0 +1,800 @@
+{% extends "layouts/admin.html.twig" %}
+
+{% block page_title %}Shipment Management{% endblock %}
+{% block page_heading %}Shipment Management{% endblock %}
+{% block page_description %}
+    <p class="mt-1 text-sm text-gray-500">Track and manage all shipments across different courier services</p>
+{% endblock %}
+
+{% block page_actions %}
+<div class="flex items-center space-x-3">
+    <!-- Live Tracking Toggle -->
+    <div class="flex items-center space-x-2">
+        <div class="w-3 h-3 bg-success-400 rounded-full animate-pulse"></div>
+        <span class="text-sm text-gray-600 font-medium">Live Tracking</span>
+    </div>
+
+    <!-- Quick Stats -->
+    <div class="hidden lg:flex items-center space-x-4 px-4 py-2 bg-gray-50 rounded-lg">
+        <div class="text-center">
+            <div class="text-sm font-bold text-warning-600">{{ statistics.pending }}</div>
+            <div class="text-xs text-gray-500">Pending</div>
+        </div>
+        <div class="text-center">
+            <div class="text-sm font-bold text-skywave-600">{{ statistics.in_transit }}</div>
+            <div class="text-xs text-gray-500">In Transit</div>
+        </div>
+        <div class="text-center">
+            <div class="text-sm font-bold text-success-600">{{ statistics.delivered_today }}</div>
+            <div class="text-xs text-gray-500">Today</div>
+        </div>
+    </div>
+
+    <!-- Export Button -->
+    <button onclick="exportShipments()" class="btn btn-secondary text-sm">
+        <svg class="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+        </svg>
+        Export
+    </button>
+
+    <!-- Bulk Track Button -->
+    <button onclick="openBulkTrackModal()" class="btn btn-primary text-sm shadow-md hover:shadow-lg transition-shadow duration-200">
+        <svg class="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+        </svg>
+        Bulk Track
+    </button>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="space-y-6" x-data="shipmentsManager()">
+    <!-- Advanced Search and Filters -->
+    <div class="bg-white shadow rounded-lg border border-gray-200">
+        <div class="p-4 border-b border-gray-200">
+            <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-4 lg:space-y-0">
+                <!-- Search Input -->
+                <div class="flex-1 max-w-lg">
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <svg class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                            </svg>
+                        </div>
+                        <input
+                            type="text"
+                            x-model="searchQuery"
+                            @input.debounce.500ms="searchShipments()"
+                            placeholder="Search by tracking number, recipient, or sender..."
+                            class="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-skywave-500 focus:border-skywave-500"
+                        >
+                    </div>
+                </div>
+
+                <!-- Filter Controls -->
+                <div class="flex items-center space-x-3">
+                    <!-- Status Filter -->
+                    <select x-model="filters.status" @change="applyFilters()" class="form-select text-sm border-gray-300 rounded-md focus:ring-skywave-500 focus:border-skywave-500">
+                        <option value="">All Status</option>
+                        <option value="pending">Pending Pickup</option>
+                        <option value="picked_up">Picked Up</option>
+                        <option value="in_transit">In Transit</option>
+                        <option value="out_for_delivery">Out for Delivery</option>
+                        <option value="delivered">Delivered</option>
+                        <option value="failed">Failed</option>
+                        <option value="returned">Returned</option>
+                    </select>
+
+                    <!-- Courier Filter -->
+                    <select x-model="filters.courier" @change="applyFilters()" class="form-select text-sm border-gray-300 rounded-md focus:ring-skywave-500 focus:border-skywave-500">
+                        <option value="">All Couriers</option>
+                        <option value="inpost">InPost</option>
+                        <option value="dhl">DHL</option>
+                        <option value="ups">UPS</option>
+                        <option value="dpd">DPD</option>
+                    </select>
+
+                    <!-- Date Range Filter -->
+                    <div class="flex items-center space-x-2">
+                        <input
+                            type="date"
+                            x-model="filters.dateFrom"
+                            @change="applyFilters()"
+                            class="form-input text-sm border-gray-300 rounded-md focus:ring-skywave-500 focus:border-skywave-500"
+                        >
+                        <span class="text-gray-500">to</span>
+                        <input
+                            type="date"
+                            x-model="filters.dateTo"
+                            @change="applyFilters()"
+                            class="form-input text-sm border-gray-300 rounded-md focus:ring-skywave-500 focus:border-skywave-500"
+                        >
+                    </div>
+
+                    <!-- Reset Filters -->
+                    <button @click="resetFilters()" class="btn btn-outline text-sm">
+                        <svg class="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                        </svg>
+                        Reset
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bulk Actions Bar -->
+        <div x-show="selectedShipments.length > 0" class="px-4 py-3 bg-skywave-50 border-b border-skywave-200">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                    <span class="text-sm text-skywave-700 font-medium" x-text="`${selectedShipments.length} shipment(s) selected`"></span>
+                    <div class="flex items-center space-x-2">
+                        <button @click="bulkAction('mark_picked_up')" class="btn btn-sm btn-warning">Mark Picked Up</button>
+                        <button @click="bulkAction('mark_in_transit')" class="btn btn-sm btn-skywave">Mark In Transit</button>
+                        <button @click="bulkAction('mark_delivered')" class="btn btn-sm btn-success">Mark Delivered</button>
+                    </div>
+                </div>
+                <button @click="clearSelection()" class="text-skywave-600 hover:text-skywave-800 text-sm font-medium">
+                    Clear Selection
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Shipments Table -->
+    <div class="bg-white shadow rounded-lg border border-gray-200 overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th scope="col" class="relative px-6 py-3">
+                            <input
+                                type="checkbox"
+                                @change="toggleSelectAll()"
+                                :checked="selectedShipments.length === shipments.length && shipments.length > 0"
+                                class="absolute left-4 top-1/2 -mt-2 h-4 w-4 text-skywave-600 focus:ring-skywave-500 border-gray-300 rounded"
+                            >
+                        </th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Tracking Info
+                        </th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Route
+                        </th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Status
+                        </th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Courier
+                        </th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Timeline
+                        </th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Cost
+                        </th>
+                        <th scope="col" class="relative px-6 py-3">
+                            <span class="sr-only">Actions</span>
+                        </th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    {% for shipment in shipments %}
+                    <tr class="hover:bg-gray-50 transition-colors duration-150" x-data="{ shipmentId: {{ shipment.id }} }">
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <input
+                                type="checkbox"
+                                :value="shipmentId"
+                                x-model="selectedShipments"
+                                class="h-4 w-4 text-skywave-600 focus:ring-skywave-500 border-gray-300 rounded"
+                            >
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="flex items-center">
+                                <div class="flex-shrink-0 h-10 w-10">
+                                    <div class="h-10 w-10 rounded-lg bg-gradient-to-r from-skywave-400 to-skywave-600 flex items-center justify-center">
+                                        <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 14v3m4-3v3m4-3v3M3 21h18M3 10h18M3 7l9-4 9 4M4 10h16v11H4V10z" />
+                                        </svg>
+                                    </div>
+                                </div>
+                                <div class="ml-4">
+                                    <div class="text-sm font-medium text-gray-900">
+                                        <a href="{{ path('admin_shipment_show', {id: shipment.id}) }}" class="hover:text-skywave-600 transition-colors duration-150">
+                                            {{ shipment.trackingNumber }}
+                                        </a>
+                                    </div>
+                                    <div class="text-sm text-gray-500">
+                                        ID: #{{ shipment.id }}
+                                    </div>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="text-sm text-gray-900">
+                                <div class="flex items-center space-x-2 mb-1">
+                                    <svg class="w-4 h-4 text-success-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                                    </svg>
+                                    <span class="font-medium">{{ shipment.senderName }}</span>
+                                </div>
+                                <div class="text-gray-500 text-xs mb-2">{{ shipment.senderCity }}</div>
+
+                                <div class="flex items-center justify-center my-1">
+                                    <svg class="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m0 0l7-7m7 7H3" />
+                                    </svg>
+                                </div>
+
+                                <div class="flex items-center space-x-2">
+                                    <svg class="w-4 h-4 text-error-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                                    </svg>
+                                    <span class="font-medium">{{ shipment.recipientName }}</span>
+                                </div>
+                                <div class="text-gray-500 text-xs">{{ shipment.recipientCity }}</div>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            {% set statusConfig = {
+                                'pending': { color: 'warning', icon: 'clock', label: 'Pending Pickup' },
+                                'picked_up': { color: 'skywave', icon: 'truck', label: 'Picked Up' },
+                                'in_transit': { color: 'skywave', icon: 'arrow-right', label: 'In Transit' },
+                                'out_for_delivery': { color: 'warning', icon: 'map-pin', label: 'Out for Delivery' },
+                                'delivered': { color: 'success', icon: 'check-circle', label: 'Delivered' },
+                                'failed': { color: 'error', icon: 'x-circle', label: 'Failed' },
+                                'returned': { color: 'error', icon: 'reply', label: 'Returned' }
+                            } %}
+                            {% set status = statusConfig[shipment.status] ?? statusConfig['pending'] %}
+
+                            <div class="flex items-center space-x-2">
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-{{ status.color }}-100 text-{{ status.color }}-800">
+                                    <svg class="w-3 h-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        {% if status.icon == 'clock' %}
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                        {% elseif status.icon == 'truck' %}
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 14v3m4-3v3m4-3v3M3 21h18M3 10h18M3 7l9-4 9 4M4 10h16v11H4V10z" />
+                                        {% elseif status.icon == 'arrow-right' %}
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                                        {% elseif status.icon == 'map-pin' %}
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                        {% elseif status.icon == 'check-circle' %}
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                        {% elseif status.icon == 'x-circle' %}
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                        {% else %}
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
+                                        {% endif %}
+                                    </svg>
+                                    {{ status.label }}
+                                </span>
+
+                                <!-- Quick Status Update -->
+                                <div x-data="{ showStatusMenu: false }" class="relative">
+                                    <button @click="showStatusMenu = !showStatusMenu" class="text-gray-400 hover:text-gray-600 p-1 rounded">
+                                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+                                        </svg>
+                                    </button>
+                                    <div x-show="showStatusMenu" @click.away="showStatusMenu = false" class="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg z-10 border border-gray-200">
+                                        <div class="py-1">
+                                            <button @click="updateShipmentStatus({{ shipment.id }}, 'picked_up')" class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                                <span class="flex items-center">
+                                                    <span class="w-2 h-2 bg-skywave-500 rounded-full mr-2"></span>
+                                                    Mark Picked Up
+                                                </span>
+                                            </button>
+                                            <button @click="updateShipmentStatus({{ shipment.id }}, 'in_transit')" class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                                <span class="flex items-center">
+                                                    <span class="w-2 h-2 bg-skywave-500 rounded-full mr-2"></span>
+                                                    Mark In Transit
+                                                </span>
+                                            </button>
+                                            <button @click="updateShipmentStatus({{ shipment.id }}, 'out_for_delivery')" class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                                <span class="flex items-center">
+                                                    <span class="w-2 h-2 bg-warning-500 rounded-full mr-2"></span>
+                                                    Out for Delivery
+                                                </span>
+                                            </button>
+                                            <button @click="updateShipmentStatus({{ shipment.id }}, 'delivered')" class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                                <span class="flex items-center">
+                                                    <span class="w-2 h-2 bg-success-500 rounded-full mr-2"></span>
+                                                    Mark Delivered
+                                                </span>
+                                            </button>
+                                            <button @click="updateShipmentStatus({{ shipment.id }}, 'failed')" class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                                <span class="flex items-center">
+                                                    <span class="w-2 h-2 bg-error-500 rounded-full mr-2"></span>
+                                                    Mark Failed
+                                                </span>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            {% set courierLogos = {
+                                'inpost': 'https://logo.clearbit.com/inpost.pl',
+                                'dhl': 'https://logo.clearbit.com/dhl.com',
+                                'ups': 'https://logo.clearbit.com/ups.com',
+                                'dpd': 'https://logo.clearbit.com/dpd.com'
+                            } %}
+
+                            <div class="flex items-center">
+                                <div class="flex-shrink-0 h-8 w-8 mr-3">
+                                    <div class="h-8 w-8 rounded-md bg-gray-100 flex items-center justify-center border">
+                                        {% if courierLogos[shipment.courierService|lower] is defined %}
+                                            <img class="h-6 w-6" src="{{ courierLogos[shipment.courierService|lower] }}" alt="{{ shipment.courierService }}">
+                                        {% else %}
+                                            <svg class="w-4 h-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 14v3m4-3v3m4-3v3M3 21h18M3 10h18M3 7l9-4 9 4M4 10h16v11H4V10z" />
+                                            </svg>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div>
+                                    <div class="text-sm font-medium text-gray-900">{{ shipment.courierService|upper }}</div>
+                                    <div class="text-sm text-gray-500">Courier Service</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="text-sm text-gray-900">
+                                <div class="flex items-center space-x-1 mb-1">
+                                    <svg class="w-3 h-3 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                    <span class="text-xs">Created:</span>
+                                </div>
+                                <div class="text-xs text-gray-500 mb-2">{{ shipment.createdAt|date('M j, Y g:i A') }}</div>
+
+                                {% if shipment.deliveredAt %}
+                                    <div class="flex items-center space-x-1">
+                                        <svg class="w-3 h-3 text-success-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                        </svg>
+                                        <span class="text-xs">Delivered:</span>
+                                    </div>
+                                    <div class="text-xs text-success-600">{{ shipment.deliveredAt|date('M j, Y g:i A') }}</div>
+                                {% else %}
+                                    <div class="text-xs text-gray-400">Not delivered yet</div>
+                                {% endif %}
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="text-sm font-medium text-gray-900">
+                                {{ shipment.totalCost|number_format(2) }} PLN
+                            </div>
+                            <div class="text-xs text-gray-500">Total Cost</div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                            <div class="flex items-center justify-end space-x-2">
+                                <!-- Track Button -->
+                                <button @click="trackShipment('{{ shipment.trackingNumber }}')" class="text-skywave-600 hover:text-skywave-900 p-1 rounded-md hover:bg-skywave-50 transition-colors duration-150">
+                                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+                                    </svg>
+                                </button>
+
+                                <!-- View Details -->
+                                <a href="{{ path('admin_shipment_show', {id: shipment.id}) }}" class="text-skywave-600 hover:text-skywave-900 p-1 rounded-md hover:bg-skywave-50 transition-colors duration-150">
+                                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                    </svg>
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="8" class="px-6 py-12 text-center">
+                            <div class="flex flex-col items-center justify-center">
+                                <svg class="w-12 h-12 text-gray-400 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 14v3m4-3v3m4-3v3M3 21h18M3 10h18M3 7l9-4 9 4M4 10h16v11H4V10z" />
+                                </svg>
+                                <h3 class="text-lg font-medium text-gray-900 mb-1">No shipments found</h3>
+                                <p class="text-gray-500 mb-4">No shipments match your current search and filter criteria.</p>
+                                <button @click="resetFilters()" class="btn btn-secondary">
+                                    Clear Filters
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination -->
+        {% if total_pages > 1 %}
+        <div class="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
+            <div class="flex-1 flex justify-between sm:hidden">
+                {% if current_page > 1 %}
+                    <a href="{{ path('admin_shipments', filters|merge({page: current_page - 1})) }}" class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">Previous</a>
+                {% endif %}
+                {% if current_page < total_pages %}
+                    <a href="{{ path('admin_shipments', filters|merge({page: current_page + 1})) }}" class="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">Next</a>
+                {% endif %}
+            </div>
+            <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+                <div>
+                    <p class="text-sm text-gray-700">
+                        Showing <span class="font-medium">{{ (current_page - 1) * 25 + 1 }}</span> to <span class="font-medium">{{ min(current_page * 25, total_shipments) }}</span> of <span class="font-medium">{{ total_shipments }}</span> results
+                    </p>
+                </div>
+                <div>
+                    <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+                        {% if current_page > 1 %}
+                            <a href="{{ path('admin_shipments', filters|merge({page: current_page - 1})) }}" class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
+                                <span class="sr-only">Previous</span>
+                                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+                                </svg>
+                            </a>
+                        {% endif %}
+
+                        {% for page in 1..total_pages %}
+                            {% if page == current_page %}
+                                <span class="relative inline-flex items-center px-4 py-2 border border-skywave-500 bg-skywave-50 text-sm font-medium text-skywave-600">{{ page }}</span>
+                            {% elseif page == 1 or page == total_pages or (page >= current_page - 2 and page <= current_page + 2) %}
+                                <a href="{{ path('admin_shipments', filters|merge({page: page})) }}" class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50">{{ page }}</a>
+                            {% elseif page == current_page - 3 or page == current_page + 3 %}
+                                <span class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700">...</span>
+                            {% endif %}
+                        {% endfor %}
+
+                        {% if current_page < total_pages %}
+                            <a href="{{ path('admin_shipments', filters|merge({page: current_page + 1})) }}" class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
+                                <span class="sr-only">Next</span>
+                                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                                </svg>
+                            </a>
+                        {% endif %}
+                    </nav>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Shipment Status Overview Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div class="bg-white overflow-hidden shadow rounded-lg border border-gray-200">
+            <div class="p-5">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <div class="w-8 h-8 bg-warning-500 rounded-md flex items-center justify-center">
+                            <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="ml-5 w-0 flex-1">
+                        <dl>
+                            <dt class="text-sm font-medium text-gray-500 truncate">Pending Pickup</dt>
+                            <dd class="text-lg font-medium text-gray-900">{{ statistics.pending|number_format }}</dd>
+                        </dl>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white overflow-hidden shadow rounded-lg border border-gray-200">
+            <div class="p-5">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <div class="w-8 h-8 bg-skywave-500 rounded-md flex items-center justify-center">
+                            <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="ml-5 w-0 flex-1">
+                        <dl>
+                            <dt class="text-sm font-medium text-gray-500 truncate">In Transit</dt>
+                            <dd class="text-lg font-medium text-gray-900">{{ statistics.in_transit|number_format }}</dd>
+                        </dl>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white overflow-hidden shadow rounded-lg border border-gray-200">
+            <div class="p-5">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <div class="w-8 h-8 bg-success-500 rounded-md flex items-center justify-center">
+                            <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="ml-5 w-0 flex-1">
+                        <dl>
+                            <dt class="text-sm font-medium text-gray-500 truncate">Delivered</dt>
+                            <dd class="text-lg font-medium text-gray-900">{{ statistics.delivered|number_format }}</dd>
+                        </dl>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white overflow-hidden shadow rounded-lg border border-gray-200">
+            <div class="p-5">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <div class="w-8 h-8 bg-error-500 rounded-md flex items-center justify-center">
+                            <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="ml-5 w-0 flex-1">
+                        <dl>
+                            <dt class="text-sm font-medium text-gray-500 truncate">Failed/Returned</dt>
+                            <dd class="text-lg font-medium text-gray-900">{{ statistics.failed|number_format }}</dd>
+                        </dl>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function shipmentsManager() {
+    return {
+        searchQuery: '{{ filters.search }}',
+        shipments: [],
+        selectedShipments: [],
+        filters: {
+            status: '{{ filters.status }}',
+            courier: '{{ filters.courier }}',
+            dateFrom: '{{ filters.date_from }}',
+            dateTo: '{{ filters.date_to }}'
+        },
+        sortField: '',
+        sortDirection: 'asc',
+        loading: false,
+
+        init() {
+            // Initialize with server-side data
+            this.shipments = @json($shipments->toArray() ?? []);
+            this.startRealTimeUpdates();
+        },
+
+        searchShipments() {
+            this.applyFilters();
+        },
+
+        applyFilters() {
+            this.loading = true;
+            const params = new URLSearchParams({
+                search: this.searchQuery,
+                status: this.filters.status,
+                courier: this.filters.courier,
+                date_from: this.filters.dateFrom,
+                date_to: this.filters.dateTo
+            });
+
+            // Update URL without reload
+            const newUrl = `{{ path('admin_shipments') }}?${params.toString()}`;
+            window.history.pushState({}, '', newUrl);
+
+            // In a real app, you'd make an AJAX call here
+            setTimeout(() => {
+                this.loading = false;
+                this.showToast('Filters applied', 'success');
+            }, 500);
+        },
+
+        resetFilters() {
+            this.searchQuery = '';
+            this.filters = { status: '', courier: '', dateFrom: '', dateTo: '' };
+            this.selectedShipments = [];
+            window.location.href = '{{ path("admin_shipments") }}';
+        },
+
+        toggleSelectAll() {
+            if (this.selectedShipments.length === this.shipments.length) {
+                this.selectedShipments = [];
+            } else {
+                this.selectedShipments = this.shipments.map(s => s.id);
+            }
+        },
+
+        clearSelection() {
+            this.selectedShipments = [];
+        },
+
+        async bulkAction(action) {
+            if (this.selectedShipments.length === 0) {
+                this.showToast('Please select shipments first', 'warning');
+                return;
+            }
+
+            if (!confirm(`Are you sure you want to ${action.replace('_', ' ')} ${this.selectedShipments.length} shipment(s)?`)) {
+                return;
+            }
+
+            try {
+                const response = await fetch('{{ path("admin_shipments_bulk_action") }}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    body: JSON.stringify({
+                        action: action,
+                        shipment_ids: this.selectedShipments
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    this.showToast(result.message, 'success');
+                    this.selectedShipments = [];
+                    setTimeout(() => window.location.reload(), 1000);
+                } else {
+                    this.showToast(result.error || 'Operation failed', 'error');
+                }
+            } catch (error) {
+                this.showToast('Network error occurred', 'error');
+                console.error('Bulk action error:', error);
+            }
+        },
+
+        async updateShipmentStatus(shipmentId, status) {
+            try {
+                const response = await fetch(`/admin/shipments/${shipmentId}/status`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    body: JSON.stringify({ status: status })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    this.showToast(result.message, 'success');
+                    setTimeout(() => window.location.reload(), 1000);
+                } else {
+                    this.showToast(result.error || 'Failed to update status', 'error');
+                }
+            } catch (error) {
+                this.showToast('Network error occurred', 'error');
+                console.error('Status update error:', error);
+            }
+        },
+
+        async trackShipment(trackingNumber) {
+            try {
+                this.showToast('Fetching latest tracking information...', 'info');
+
+                // In a real app, this would call the tracking API
+                const response = await fetch(`/admin/shipments/track/${trackingNumber}`, {
+                    method: 'GET',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    this.showToast('Tracking information updated', 'success');
+                    // You could open a modal here to show tracking details
+                    this.openTrackingModal(result.tracking);
+                } else {
+                    this.showToast('Failed to fetch tracking information', 'error');
+                }
+            } catch (error) {
+                this.showToast('Error tracking shipment', 'error');
+                console.error('Tracking error:', error);
+            }
+        },
+
+        openTrackingModal(trackingData) {
+            // Implementation for tracking modal
+            alert(`Tracking data for ${trackingData.tracking_number}:\n\nStatus: ${trackingData.status}\nLast Update: ${trackingData.last_update}`);
+        },
+
+        startRealTimeUpdates() {
+            // Simulate real-time updates every 30 seconds
+            setInterval(() => {
+                this.refreshShipmentStatuses();
+            }, 30000);
+        },
+
+        async refreshShipmentStatuses() {
+            try {
+                const response = await fetch('{{ path("admin_shipments_api") }}', {
+                    method: 'GET',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    // Update shipments with new data
+                    this.shipments = result.shipments;
+                    console.log('📦 Shipment statuses refreshed');
+                }
+            } catch (error) {
+                console.error('Failed to refresh statuses:', error);
+            }
+        },
+
+        showToast(message, type = 'info') {
+            // Create toast notification
+            const toast = document.createElement('div');
+            toast.className = `fixed top-4 right-4 z-50 max-w-sm bg-white shadow-lg rounded-lg border-l-4 border-${type === 'success' ? 'success' : type === 'error' ? 'error' : type === 'warning' ? 'warning' : 'skywave'}-500 p-4 transform transition-all duration-300 translate-x-full`;
+
+            toast.innerHTML = `
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        ${this.getToastIcon(type)}
+                    </div>
+                    <div class="ml-3">
+                        <p class="text-sm font-medium text-gray-900">${message}</p>
+                    </div>
+                    <div class="ml-auto pl-3">
+                        <button onclick="this.parentElement.parentElement.parentElement.remove()" class="text-gray-400 hover:text-gray-600">
+                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            `;
+
+            document.body.appendChild(toast);
+
+            // Slide in
+            setTimeout(() => {
+                toast.classList.remove('translate-x-full');
+            }, 100);
+
+            // Auto remove after 5 seconds
+            setTimeout(() => {
+                toast.classList.add('translate-x-full');
+                setTimeout(() => toast.remove(), 300);
+            }, 5000);
+        },
+
+        getToastIcon(type) {
+            const icons = {
+                success: '<svg class="w-5 h-5 text-success-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>',
+                error: '<svg class="w-5 h-5 text-error-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>',
+                warning: '<svg class="w-5 h-5 text-warning-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.07 16.5c-.77.833.192 2.5 1.732 2.5z" /></svg>',
+                info: '<svg class="w-5 h-5 text-skywave-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>'
+            };
+            return icons[type] || icons.info;
+        }
+    }
+}
+
+// Export functionality
+function exportShipments() {
+    const params = new URLSearchParams(window.location.search);
+    params.set('format', 'csv');
+    window.open(`{{ path('admin_shipments_export') }}?${params.toString()}`, '_blank');
+}
+
+// Bulk track modal (placeholder)
+function openBulkTrackModal() {
+    alert('Bulk Track Modal - This would allow tracking multiple shipments at once');
+    // In real implementation, this would open a modal for bulk tracking operations
+}
+</script>
+{% endblock %}

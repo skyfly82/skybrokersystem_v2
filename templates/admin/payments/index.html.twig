@@ -1,0 +1,788 @@
+{% extends "layouts/admin.html.twig" %}
+
+{% block page_title %}Payment Management{% endblock %}
+{% block page_heading %}Payment Management{% endblock %}
+{% block page_description %}
+    <p class="mt-1 text-sm text-gray-500">Monitor transactions, process refunds, and manage payment operations</p>
+{% endblock %}
+
+{% block page_actions %}
+<div class="flex items-center space-x-3">
+    <!-- Revenue Stats -->
+    <div class="hidden lg:flex items-center space-x-4 px-4 py-2 bg-gray-50 rounded-lg">
+        <div class="text-center">
+            <div class="text-sm font-bold text-success-600">{{ statistics.total_revenue|number_format(2) }} PLN</div>
+            <div class="text-xs text-gray-500">Total Revenue</div>
+        </div>
+        <div class="text-center">
+            <div class="text-sm font-bold text-skywave-600">{{ statistics.today_revenue|number_format(2) }} PLN</div>
+            <div class="text-xs text-gray-500">Today</div>
+        </div>
+        <div class="text-center">
+            <div class="text-sm font-bold text-warning-600">{{ statistics.pending_transactions }}</div>
+            <div class="text-xs text-gray-500">Pending</div>
+        </div>
+    </div>
+
+    <!-- Reconcile Button -->
+    <button onclick="reconcilePayments()" class="btn btn-warning text-sm">
+        <svg class="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+        </svg>
+        Reconcile
+    </button>
+
+    <!-- Export Button -->
+    <button onclick="exportPayments()" class="btn btn-secondary text-sm">
+        <svg class="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+        </svg>
+        Export
+    </button>
+
+    <!-- Analytics Button -->
+    <button onclick="openAnalyticsModal()" class="btn btn-primary text-sm shadow-md hover:shadow-lg transition-shadow duration-200">
+        <svg class="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+        </svg>
+        Analytics
+    </button>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="space-y-6" x-data="paymentsManager()">
+    <!-- Advanced Search and Filters -->
+    <div class="bg-white shadow rounded-lg border border-gray-200">
+        <div class="p-4 border-b border-gray-200">
+            <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-4 lg:space-y-0">
+                <!-- Search Input -->
+                <div class="flex-1 max-w-lg">
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <svg class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                            </svg>
+                        </div>
+                        <input
+                            type="text"
+                            x-model="searchQuery"
+                            @input.debounce.500ms="searchPayments()"
+                            placeholder="Search by transaction ID, customer, or amount..."
+                            class="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-skywave-500 focus:border-skywave-500"
+                        >
+                    </div>
+                </div>
+
+                <!-- Filter Controls -->
+                <div class="flex items-center space-x-3">
+                    <!-- Status Filter -->
+                    <select x-model="filters.status" @change="applyFilters()" class="form-select text-sm border-gray-300 rounded-md focus:ring-skywave-500 focus:border-skywave-500">
+                        <option value="">All Status</option>
+                        <option value="pending">Pending</option>
+                        <option value="completed">Completed</option>
+                        <option value="failed">Failed</option>
+                        <option value="refunded">Refunded</option>
+                        <option value="cancelled">Cancelled</option>
+                    </select>
+
+                    <!-- Type Filter -->
+                    <select x-model="filters.type" @change="applyFilters()" class="form-select text-sm border-gray-300 rounded-md focus:ring-skywave-500 focus:border-skywave-500">
+                        <option value="">All Types</option>
+                        <option value="payment">Payment</option>
+                        <option value="refund">Refund</option>
+                        <option value="adjustment">Adjustment</option>
+                    </select>
+
+                    <!-- Payment Method Filter -->
+                    <select x-model="filters.paymentMethod" @change="applyFilters()" class="form-select text-sm border-gray-300 rounded-md focus:ring-skywave-500 focus:border-skywave-500">
+                        <option value="">All Methods</option>
+                        <option value="paynow">PayNow</option>
+                        <option value="stripe">Stripe</option>
+                        <option value="credit">Credit</option>
+                        <option value="wallet">Wallet</option>
+                    </select>
+
+                    <!-- Date Range Filter -->
+                    <div class="flex items-center space-x-2">
+                        <input
+                            type="date"
+                            x-model="filters.dateFrom"
+                            @change="applyFilters()"
+                            class="form-input text-sm border-gray-300 rounded-md focus:ring-skywave-500 focus:border-skywave-500"
+                        >
+                        <span class="text-gray-500">to</span>
+                        <input
+                            type="date"
+                            x-model="filters.dateTo"
+                            @change="applyFilters()"
+                            class="form-input text-sm border-gray-300 rounded-md focus:ring-skywave-500 focus:border-skywave-500"
+                        >
+                    </div>
+
+                    <!-- Reset Filters -->
+                    <button @click="resetFilters()" class="btn btn-outline text-sm">
+                        <svg class="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                        </svg>
+                        Reset
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bulk Actions Bar -->
+        <div x-show="selectedTransactions.length > 0" class="px-4 py-3 bg-skywave-50 border-b border-skywave-200">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                    <span class="text-sm text-skywave-700 font-medium" x-text="`${selectedTransactions.length} transaction(s) selected`"></span>
+                    <div class="flex items-center space-x-2">
+                        <button @click="bulkRefund()" class="btn btn-sm btn-warning">Process Refunds</button>
+                        <button @click="bulkExport()" class="btn btn-sm btn-secondary">Export Selected</button>
+                    </div>
+                </div>
+                <button @click="clearSelection()" class="text-skywave-600 hover:text-skywave-800 text-sm font-medium">
+                    Clear Selection
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Payments Table -->
+    <div class="bg-white shadow rounded-lg border border-gray-200 overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th scope="col" class="relative px-6 py-3">
+                            <input
+                                type="checkbox"
+                                @change="toggleSelectAll()"
+                                :checked="selectedTransactions.length === transactions.length && transactions.length > 0"
+                                class="absolute left-4 top-1/2 -mt-2 h-4 w-4 text-skywave-600 focus:ring-skywave-500 border-gray-300 rounded"
+                            >
+                        </th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Transaction
+                        </th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Customer
+                        </th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Amount
+                        </th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Method
+                        </th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Status
+                        </th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Date
+                        </th>
+                        <th scope="col" class="relative px-6 py-3">
+                            <span class="sr-only">Actions</span>
+                        </th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    {% for transaction in transactions %}
+                    <tr class="hover:bg-gray-50 transition-colors duration-150" x-data="{ transactionId: {{ transaction.id }} }">
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <input
+                                type="checkbox"
+                                :value="transactionId"
+                                x-model="selectedTransactions"
+                                class="h-4 w-4 text-skywave-600 focus:ring-skywave-500 border-gray-300 rounded"
+                            >
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="flex items-center">
+                                <div class="flex-shrink-0 h-10 w-10">
+                                    {% set typeIcons = {
+                                        'payment': 'credit-card',
+                                        'refund': 'reply',
+                                        'adjustment': 'adjustments'
+                                    } %}
+                                    {% set typeColors = {
+                                        'payment': 'success',
+                                        'refund': 'warning',
+                                        'adjustment': 'skywave'
+                                    } %}
+
+                                    <div class="h-10 w-10 rounded-lg bg-gradient-to-r from-{{ typeColors[transaction.type] ?? 'success' }}-400 to-{{ typeColors[transaction.type] ?? 'success' }}-600 flex items-center justify-center">
+                                        {% if transaction.type == 'payment' %}
+                                            <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                                            </svg>
+                                        {% elseif transaction.type == 'refund' %}
+                                            <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
+                                            </svg>
+                                        {% else %}
+                                            <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                                            </svg>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div class="ml-4">
+                                    <div class="text-sm font-medium text-gray-900">
+                                        <a href="{{ path('admin_payment_show', {id: transaction.id}) }}" class="hover:text-skywave-600 transition-colors duration-150">
+                                            {{ transaction.transactionId }}
+                                        </a>
+                                    </div>
+                                    <div class="text-sm text-gray-500">
+                                        {{ transaction.type|title }}
+                                        {% if transaction.description %}
+                                            <div class="truncate max-w-xs">{{ transaction.description }}</div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            {% if transaction.customer %}
+                                <div class="text-sm font-medium text-gray-900">
+                                    {{ transaction.customer.companyName }}
+                                </div>
+                                <div class="text-sm text-gray-500">
+                                    {{ transaction.customer.email }}
+                                </div>
+                            {% else %}
+                                <div class="text-sm text-gray-500 italic">No customer</div>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="text-sm font-medium {{ transaction.type == 'refund' ? 'text-warning-600' : 'text-success-600' }}">
+                                {% if transaction.type == 'refund' %}-{% endif %}{{ transaction.amount|number_format(2) }} {{ transaction.currency }}
+                            </div>
+                            {% if transaction.type == 'payment' and transaction.amount >= 1000 %}
+                                <div class="text-xs text-gray-500">Large transaction</div>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            {% set methodConfig = {
+                                'paynow': { color: 'skywave', label: 'PayNow' },
+                                'stripe': { color: 'purple', label: 'Stripe' },
+                                'credit': { color: 'success', label: 'Credit' },
+                                'wallet': { color: 'warning', label: 'Wallet' }
+                            } %}
+                            {% set method = methodConfig[transaction.paymentMethod] ?? { color: 'gray', label: transaction.paymentMethod|title } %}
+
+                            <div class="flex items-center">
+                                <div class="flex-shrink-0 h-8 w-8 mr-3">
+                                    <div class="h-8 w-8 rounded-md bg-{{ method.color }}-100 flex items-center justify-center border">
+                                        {% if transaction.paymentMethod == 'paynow' %}
+                                            <svg class="w-4 h-4 text-{{ method.color }}-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
+                                            </svg>
+                                        {% elseif transaction.paymentMethod == 'stripe' %}
+                                            <svg class="w-4 h-4 text-{{ method.color }}-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                                            </svg>
+                                        {% else %}
+                                            <svg class="w-4 h-4 text-{{ method.color }}-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+                                            </svg>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <span class="text-sm font-medium text-gray-900">{{ method.label }}</span>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            {% set statusConfig = {
+                                'pending': { color: 'warning', icon: 'clock', label: 'Pending' },
+                                'completed': { color: 'success', icon: 'check-circle', label: 'Completed' },
+                                'failed': { color: 'error', icon: 'x-circle', label: 'Failed' },
+                                'refunded': { color: 'warning', icon: 'reply', label: 'Refunded' },
+                                'cancelled': { color: 'error', icon: 'ban', label: 'Cancelled' }
+                            } %}
+                            {% set status = statusConfig[transaction.status] ?? statusConfig['pending'] %}
+
+                            <div class="flex items-center space-x-2">
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-{{ status.color }}-100 text-{{ status.color }}-800">
+                                    <svg class="w-3 h-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        {% if status.icon == 'clock' %}
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                        {% elseif status.icon == 'check-circle' %}
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                        {% elseif status.icon == 'x-circle' %}
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                        {% elseif status.icon == 'reply' %}
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
+                                        {% else %}
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728L5.636 5.636m12.728 12.728L18.364 5.636M5.636 18.364l12.728-12.728" />
+                                        {% endif %}
+                                    </svg>
+                                    {{ status.label }}
+                                </span>
+
+                                <!-- Quick Actions -->
+                                {% if transaction.status == 'completed' and transaction.type == 'payment' %}
+                                    <button
+                                        @click="refundTransaction({{ transaction.id }})"
+                                        class="text-warning-600 hover:text-warning-900 p-1 rounded-md hover:bg-warning-50 transition-colors duration-150"
+                                        title="Refund"
+                                    >
+                                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
+                                        </svg>
+                                    </button>
+                                {% endif %}
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="text-sm text-gray-900">
+                                <div class="flex items-center space-x-1 mb-1">
+                                    <svg class="w-3 h-3 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                    <span class="text-xs">Created:</span>
+                                </div>
+                                <div class="text-xs text-gray-500 mb-2">{{ transaction.createdAt|date('M j, Y g:i A') }}</div>
+
+                                {% if transaction.completedAt %}
+                                    <div class="flex items-center space-x-1">
+                                        <svg class="w-3 h-3 text-success-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                        </svg>
+                                        <span class="text-xs">Completed:</span>
+                                    </div>
+                                    <div class="text-xs text-success-600">{{ transaction.completedAt|date('M j, Y g:i A') }}</div>
+                                {% else %}
+                                    <div class="text-xs text-gray-400">Not completed yet</div>
+                                {% endif %}
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                            <div class="flex items-center justify-end space-x-2">
+                                <!-- View Details -->
+                                <a href="{{ path('admin_payment_show', {id: transaction.id}) }}" class="text-skywave-600 hover:text-skywave-900 p-1 rounded-md hover:bg-skywave-50 transition-colors duration-150">
+                                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                    </svg>
+                                </a>
+
+                                <!-- Download Receipt -->
+                                <button @click="downloadReceipt({{ transaction.id }})" class="text-gray-600 hover:text-gray-900 p-1 rounded-md hover:bg-gray-50 transition-colors duration-150">
+                                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                    </svg>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="8" class="px-6 py-12 text-center">
+                            <div class="flex flex-col items-center justify-center">
+                                <svg class="w-12 h-12 text-gray-400 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                                </svg>
+                                <h3 class="text-lg font-medium text-gray-900 mb-1">No transactions found</h3>
+                                <p class="text-gray-500 mb-4">No payment transactions match your current search and filter criteria.</p>
+                                <button @click="resetFilters()" class="btn btn-secondary">
+                                    Clear Filters
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination -->
+        {% if total_pages > 1 %}
+        <div class="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
+            <div class="flex-1 flex justify-between sm:hidden">
+                {% if current_page > 1 %}
+                    <a href="{{ path('admin_payments', filters|merge({page: current_page - 1})) }}" class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">Previous</a>
+                {% endif %}
+                {% if current_page < total_pages %}
+                    <a href="{{ path('admin_payments', filters|merge({page: current_page + 1})) }}" class="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">Next</a>
+                {% endif %}
+            </div>
+            <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+                <div>
+                    <p class="text-sm text-gray-700">
+                        Showing <span class="font-medium">{{ (current_page - 1) * 25 + 1 }}</span> to <span class="font-medium">{{ min(current_page * 25, total_transactions) }}</span> of <span class="font-medium">{{ total_transactions }}</span> results
+                    </p>
+                </div>
+                <div>
+                    <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+                        {% if current_page > 1 %}
+                            <a href="{{ path('admin_payments', filters|merge({page: current_page - 1})) }}" class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
+                                <span class="sr-only">Previous</span>
+                                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+                                </svg>
+                            </a>
+                        {% endif %}
+
+                        {% for page in 1..total_pages %}
+                            {% if page == current_page %}
+                                <span class="relative inline-flex items-center px-4 py-2 border border-skywave-500 bg-skywave-50 text-sm font-medium text-skywave-600">{{ page }}</span>
+                            {% elseif page == 1 or page == total_pages or (page >= current_page - 2 and page <= current_page + 2) %}
+                                <a href="{{ path('admin_payments', filters|merge({page: page})) }}" class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50">{{ page }}</a>
+                            {% elseif page == current_page - 3 or page == current_page + 3 %}
+                                <span class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700">...</span>
+                            {% endif %}
+                        {% endfor %}
+
+                        {% if current_page < total_pages %}
+                            <a href="{{ path('admin_payments', filters|merge({page: current_page + 1})) }}" class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
+                                <span class="sr-only">Next</span>
+                                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                                </svg>
+                            </a>
+                        {% endif %}
+                    </nav>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Payment Statistics Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div class="bg-white overflow-hidden shadow rounded-lg border border-gray-200">
+            <div class="p-5">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <div class="w-8 h-8 bg-success-500 rounded-md flex items-center justify-center">
+                            <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="ml-5 w-0 flex-1">
+                        <dl>
+                            <dt class="text-sm font-medium text-gray-500 truncate">Completed</dt>
+                            <dd class="text-lg font-medium text-gray-900">{{ statistics.completed_transactions|number_format }}</dd>
+                        </dl>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white overflow-hidden shadow rounded-lg border border-gray-200">
+            <div class="p-5">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <div class="w-8 h-8 bg-warning-500 rounded-md flex items-center justify-center">
+                            <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="ml-5 w-0 flex-1">
+                        <dl>
+                            <dt class="text-sm font-medium text-gray-500 truncate">Pending</dt>
+                            <dd class="text-lg font-medium text-gray-900">{{ statistics.pending_transactions|number_format }}</dd>
+                        </dl>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white overflow-hidden shadow rounded-lg border border-gray-200">
+            <div class="p-5">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <div class="w-8 h-8 bg-error-500 rounded-md flex items-center justify-center">
+                            <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="ml-5 w-0 flex-1">
+                        <dl>
+                            <dt class="text-sm font-medium text-gray-500 truncate">Failed</dt>
+                            <dd class="text-lg font-medium text-gray-900">{{ statistics.failed_transactions|number_format }}</dd>
+                        </dl>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white overflow-hidden shadow rounded-lg border border-gray-200">
+            <div class="p-5">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <div class="w-8 h-8 bg-skywave-500 rounded-md flex items-center justify-center">
+                            <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="ml-5 w-0 flex-1">
+                        <dl>
+                            <dt class="text-sm font-medium text-gray-500 truncate">Total Revenue</dt>
+                            <dd class="text-lg font-medium text-gray-900">{{ statistics.total_revenue|number_format(2) }} PLN</dd>
+                        </dl>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function paymentsManager() {
+    return {
+        searchQuery: '{{ filters.search }}',
+        transactions: [],
+        selectedTransactions: [],
+        filters: {
+            status: '{{ filters.status }}',
+            type: '{{ filters.type }}',
+            paymentMethod: '{{ filters.payment_method }}',
+            dateFrom: '{{ filters.date_from }}',
+            dateTo: '{{ filters.date_to }}'
+        },
+        sortField: '',
+        sortDirection: 'asc',
+        loading: false,
+
+        init() {
+            // Initialize with server-side data
+            this.transactions = @json($transactions->toArray() ?? []);
+        },
+
+        searchPayments() {
+            this.applyFilters();
+        },
+
+        applyFilters() {
+            this.loading = true;
+            const params = new URLSearchParams({
+                search: this.searchQuery,
+                status: this.filters.status,
+                type: this.filters.type,
+                payment_method: this.filters.paymentMethod,
+                date_from: this.filters.dateFrom,
+                date_to: this.filters.dateTo
+            });
+
+            // Update URL without reload
+            const newUrl = `{{ path('admin_payments') }}?${params.toString()}`;
+            window.history.pushState({}, '', newUrl);
+
+            // In a real app, you'd make an AJAX call here
+            setTimeout(() => {
+                this.loading = false;
+                this.showToast('Filters applied', 'success');
+            }, 500);
+        },
+
+        resetFilters() {
+            this.searchQuery = '';
+            this.filters = { status: '', type: '', paymentMethod: '', dateFrom: '', dateTo: '' };
+            this.selectedTransactions = [];
+            window.location.href = '{{ path("admin_payments") }}';
+        },
+
+        toggleSelectAll() {
+            if (this.selectedTransactions.length === this.transactions.length) {
+                this.selectedTransactions = [];
+            } else {
+                this.selectedTransactions = this.transactions.map(t => t.id);
+            }
+        },
+
+        clearSelection() {
+            this.selectedTransactions = [];
+        },
+
+        async refundTransaction(transactionId) {
+            const amount = prompt('Enter refund amount (leave empty for full refund):');
+            const reason = prompt('Enter refund reason:');
+
+            if (reason === null) return; // User cancelled
+
+            try {
+                const response = await fetch(`/admin/payments/${transactionId}/refund`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    body: JSON.stringify({
+                        amount: amount ? parseFloat(amount) : null,
+                        reason: reason
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    this.showToast(result.message, 'success');
+                    setTimeout(() => window.location.reload(), 1000);
+                } else {
+                    this.showToast(result.error || 'Failed to process refund', 'error');
+                }
+            } catch (error) {
+                this.showToast('Network error occurred', 'error');
+                console.error('Refund error:', error);
+            }
+        },
+
+        async bulkRefund() {
+            if (this.selectedTransactions.length === 0) {
+                this.showToast('Please select transactions first', 'warning');
+                return;
+            }
+
+            const reason = prompt('Enter refund reason for selected transactions:');
+            if (reason === null) return; // User cancelled
+
+            if (!confirm(`Are you sure you want to refund ${this.selectedTransactions.length} transaction(s)?`)) {
+                return;
+            }
+
+            try {
+                const promises = this.selectedTransactions.map(id =>
+                    fetch(`/admin/payments/${id}/refund`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest'
+                        },
+                        body: JSON.stringify({ reason: reason })
+                    })
+                );
+
+                const responses = await Promise.all(promises);
+                const results = await Promise.all(responses.map(r => r.json()));
+
+                const successful = results.filter(r => r.success).length;
+                const failed = results.length - successful;
+
+                if (successful > 0) {
+                    this.showToast(`${successful} refund(s) processed successfully${failed > 0 ? `, ${failed} failed` : ''}`, successful > failed ? 'success' : 'warning');
+                    this.selectedTransactions = [];
+                    setTimeout(() => window.location.reload(), 1000);
+                } else {
+                    this.showToast('All refunds failed', 'error');
+                }
+            } catch (error) {
+                this.showToast('Network error occurred', 'error');
+                console.error('Bulk refund error:', error);
+            }
+        },
+
+        bulkExport() {
+            if (this.selectedTransactions.length === 0) {
+                this.showToast('Please select transactions first', 'warning');
+                return;
+            }
+
+            const params = new URLSearchParams({
+                ids: this.selectedTransactions.join(','),
+                format: 'csv'
+            });
+
+            window.open(`{{ path('admin_payments_export') }}?${params.toString()}`, '_blank');
+        },
+
+        downloadReceipt(transactionId) {
+            window.open(`/admin/payments/${transactionId}/receipt`, '_blank');
+        },
+
+        showToast(message, type = 'info') {
+            // Create toast notification
+            const toast = document.createElement('div');
+            toast.className = `fixed top-4 right-4 z-50 max-w-sm bg-white shadow-lg rounded-lg border-l-4 border-${type === 'success' ? 'success' : type === 'error' ? 'error' : type === 'warning' ? 'warning' : 'skywave'}-500 p-4 transform transition-all duration-300 translate-x-full`;
+
+            toast.innerHTML = `
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        ${this.getToastIcon(type)}
+                    </div>
+                    <div class="ml-3">
+                        <p class="text-sm font-medium text-gray-900">${message}</p>
+                    </div>
+                    <div class="ml-auto pl-3">
+                        <button onclick="this.parentElement.parentElement.parentElement.remove()" class="text-gray-400 hover:text-gray-600">
+                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            `;
+
+            document.body.appendChild(toast);
+
+            // Slide in
+            setTimeout(() => {
+                toast.classList.remove('translate-x-full');
+            }, 100);
+
+            // Auto remove after 5 seconds
+            setTimeout(() => {
+                toast.classList.add('translate-x-full');
+                setTimeout(() => toast.remove(), 300);
+            }, 5000);
+        },
+
+        getToastIcon(type) {
+            const icons = {
+                success: '<svg class="w-5 h-5 text-success-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>',
+                error: '<svg class="w-5 h-5 text-error-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>',
+                warning: '<svg class="w-5 h-5 text-warning-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.07 16.5c-.77.833.192 2.5 1.732 2.5z" /></svg>',
+                info: '<svg class="w-5 h-5 text-skywave-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>'
+            };
+            return icons[type] || icons.info;
+        }
+    }
+}
+
+// Export functionality
+function exportPayments() {
+    const params = new URLSearchParams(window.location.search);
+    params.set('format', 'csv');
+    window.open(`{{ path('admin_payments_export') }}?${params.toString()}`, '_blank');
+}
+
+// Reconcile payments
+async function reconcilePayments() {
+    if (!confirm('This will check all pending transactions with payment providers. Continue?')) {
+        return;
+    }
+
+    try {
+        const response = await fetch('{{ path("admin_payments_reconcile") }}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+            alert(result.message);
+            window.location.reload();
+        } else {
+            alert('Reconciliation failed: ' + (result.error || 'Unknown error'));
+        }
+    } catch (error) {
+        alert('Network error during reconciliation');
+        console.error('Reconciliation error:', error);
+    }
+}
+
+// Analytics modal (placeholder)
+function openAnalyticsModal() {
+    alert('Payment Analytics Modal - This would show revenue charts, payment method breakdown, etc.');
+    // In real implementation, this would open an analytics modal or redirect to analytics page
+}
+</script>
+{% endblock %}

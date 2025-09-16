@@ -1,0 +1,747 @@
+{% extends "layouts/admin.html.twig" %}
+
+{% block page_title %}Notification Management{% endblock %}
+{% block page_heading %}Notification Management{% endblock %}
+{% block page_description %}
+    <p class="mt-1 text-sm text-gray-500">Send notifications, manage templates, and monitor delivery status</p>
+{% endblock %}
+
+{% block page_actions %}
+<div class="flex items-center space-x-3">
+    <!-- Quick Stats -->
+    <div class="hidden lg:flex items-center space-x-4 px-4 py-2 bg-gray-50 rounded-lg">
+        <div class="text-center">
+            <div class="text-sm font-bold text-success-600">{{ statistics.sent_this_month }}</div>
+            <div class="text-xs text-gray-500">Sent</div>
+        </div>
+        <div class="text-center">
+            <div class="text-sm font-bold text-warning-600">{{ statistics.pending }}</div>
+            <div class="text-xs text-gray-500">Pending</div>
+        </div>
+        <div class="text-center">
+            <div class="text-sm font-bold text-error-600">{{ statistics.failed }}</div>
+            <div class="text-xs text-gray-500">Failed</div>
+        </div>
+    </div>
+
+    <!-- Templates Button -->
+    <a href="{{ path('admin_notification_templates') }}" class="btn btn-secondary text-sm">
+        <svg class="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+        </svg>
+        Templates
+    </a>
+
+    <!-- Broadcast Button -->
+    <button onclick="openBroadcastModal()" class="btn btn-warning text-sm">
+        <svg class="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" />
+        </svg>
+        Broadcast
+    </button>
+
+    <!-- Create Notification Button -->
+    <a href="{{ path('admin_notification_create') }}" class="btn btn-primary text-sm shadow-md hover:shadow-lg transition-shadow duration-200">
+        <svg class="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+        </svg>
+        Create Notification
+    </a>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="space-y-6" x-data="notificationsManager()">
+    <!-- Search and Filters Bar -->
+    <div class="bg-white shadow rounded-lg border border-gray-200">
+        <div class="p-4 border-b border-gray-200">
+            <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-4 lg:space-y-0">
+                <!-- Search Input -->
+                <div class="flex-1 max-w-lg">
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <svg class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                            </svg>
+                        </div>
+                        <input
+                            type="text"
+                            x-model="searchQuery"
+                            @input.debounce.500ms="searchNotifications()"
+                            placeholder="Search by subject, recipient, or content..."
+                            class="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-skywave-500 focus:border-skywave-500"
+                        >
+                    </div>
+                </div>
+
+                <!-- Filter Controls -->
+                <div class="flex items-center space-x-3">
+                    <!-- Type Filter -->
+                    <select x-model="filters.type" @change="applyFilters()" class="form-select text-sm border-gray-300 rounded-md focus:ring-skywave-500 focus:border-skywave-500">
+                        <option value="">All Types</option>
+                        <option value="email">Email</option>
+                        <option value="sms">SMS</option>
+                        <option value="push">Push Notification</option>
+                        <option value="in_app">In-App</option>
+                    </select>
+
+                    <!-- Status Filter -->
+                    <select x-model="filters.status" @change="applyFilters()" class="form-select text-sm border-gray-300 rounded-md focus:ring-skywave-500 focus:border-skywave-500">
+                        <option value="">All Status</option>
+                        <option value="pending">Pending</option>
+                        <option value="sent">Sent</option>
+                        <option value="failed">Failed</option>
+                        <option value="cancelled">Cancelled</option>
+                    </select>
+
+                    <!-- Priority Filter -->
+                    <select x-model="filters.priority" @change="applyFilters()" class="form-select text-sm border-gray-300 rounded-md focus:ring-skywave-500 focus:border-skywave-500">
+                        <option value="">All Priorities</option>
+                        <option value="low">Low</option>
+                        <option value="normal">Normal</option>
+                        <option value="high">High</option>
+                        <option value="urgent">Urgent</option>
+                    </select>
+
+                    <!-- Reset Filters -->
+                    <button @click="resetFilters()" class="btn btn-outline text-sm">
+                        <svg class="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                        </svg>
+                        Reset
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bulk Actions Bar -->
+        <div x-show="selectedNotifications.length > 0" class="px-4 py-3 bg-skywave-50 border-b border-skywave-200">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                    <span class="text-sm text-skywave-700 font-medium" x-text="`${selectedNotifications.length} notification(s) selected`"></span>
+                    <div class="flex items-center space-x-2">
+                        <button @click="bulkAction('resend')" class="btn btn-sm btn-warning">Resend</button>
+                        <button @click="bulkAction('cancel')" class="btn btn-sm btn-error">Cancel</button>
+                        <button @click="bulkAction('delete')" class="btn btn-sm btn-secondary">Delete</button>
+                    </div>
+                </div>
+                <button @click="clearSelection()" class="text-skywave-600 hover:text-skywave-800 text-sm font-medium">
+                    Clear Selection
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notifications Table -->
+    <div class="bg-white shadow rounded-lg border border-gray-200 overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th scope="col" class="relative px-6 py-3">
+                            <input
+                                type="checkbox"
+                                @change="toggleSelectAll()"
+                                :checked="selectedNotifications.length === notifications.length && notifications.length > 0"
+                                class="absolute left-4 top-1/2 -mt-2 h-4 w-4 text-skywave-600 focus:ring-skywave-500 border-gray-300 rounded"
+                            >
+                        </th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Notification
+                        </th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Recipient
+                        </th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Type
+                        </th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Priority
+                        </th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Status
+                        </th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Schedule
+                        </th>
+                        <th scope="col" class="relative px-6 py-3">
+                            <span class="sr-only">Actions</span>
+                        </th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    {% for notification in notifications %}
+                    <tr class="hover:bg-gray-50 transition-colors duration-150" x-data="{ notificationId: {{ notification.id }} }">
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <input
+                                type="checkbox"
+                                :value="notificationId"
+                                x-model="selectedNotifications"
+                                class="h-4 w-4 text-skywave-600 focus:ring-skywave-500 border-gray-300 rounded"
+                            >
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="flex items-center">
+                                <div class="flex-shrink-0 h-10 w-10">
+                                    {% set typeIcons = {
+                                        'email': 'mail',
+                                        'sms': 'device-phone-mobile',
+                                        'push': 'bell',
+                                        'in_app': 'chat-bubble-oval-left'
+                                    } %}
+                                    {% set typeColors = {
+                                        'email': 'skywave',
+                                        'sms': 'success',
+                                        'push': 'warning',
+                                        'in_app': 'purple'
+                                    } %}
+
+                                    <div class="h-10 w-10 rounded-lg bg-gradient-to-r from-{{ typeColors[notification.type] ?? 'skywave' }}-400 to-{{ typeColors[notification.type] ?? 'skywave' }}-600 flex items-center justify-center">
+                                        {% if notification.type == 'email' %}
+                                            <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                                            </svg>
+                                        {% elseif notification.type == 'sms' %}
+                                            <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                                            </svg>
+                                        {% elseif notification.type == 'push' %}
+                                            <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-5 5v-5zM21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                            </svg>
+                                        {% else %}
+                                            <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                                            </svg>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div class="ml-4">
+                                    <div class="text-sm font-medium text-gray-900">
+                                        <a href="{{ path('admin_notification_show', {id: notification.id}) }}" class="hover:text-skywave-600 transition-colors duration-150">
+                                            {{ notification.subject }}
+                                        </a>
+                                    </div>
+                                    <div class="text-sm text-gray-500 truncate max-w-xs">
+                                        {{ notification.message|length > 50 ? notification.message|slice(0, 50) ~ '...' : notification.message }}
+                                    </div>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            {% if notification.customer %}
+                                <div class="text-sm font-medium text-gray-900">
+                                    {{ notification.customer.companyName }}
+                                </div>
+                                <div class="text-sm text-gray-500">Customer</div>
+                            {% elseif notification.customerUser %}
+                                <div class="text-sm font-medium text-gray-900">
+                                    {{ notification.customerUser.fullName }}
+                                </div>
+                                <div class="text-sm text-gray-500">Customer User</div>
+                            {% elseif notification.systemUser %}
+                                <div class="text-sm font-medium text-gray-900">
+                                    {{ notification.systemUser.fullName }}
+                                </div>
+                                <div class="text-sm text-gray-500">System User</div>
+                            {% else %}
+                                <div class="text-sm text-gray-500 italic">No recipient</div>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            {% set typeConfig = {
+                                'email': { color: 'skywave', label: 'Email' },
+                                'sms': { color: 'success', label: 'SMS' },
+                                'push': { color: 'warning', label: 'Push' },
+                                'in_app': { color: 'purple', label: 'In-App' }
+                            } %}
+                            {% set type = typeConfig[notification.type] ?? { color: 'gray', label: notification.type|title } %}
+
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-{{ type.color }}-100 text-{{ type.color }}-800">
+                                {{ type.label }}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            {% set priorityConfig = {
+                                'low': { color: 'gray', icon: 'chevron-down', label: 'Low' },
+                                'normal': { color: 'skywave', icon: 'minus', label: 'Normal' },
+                                'high': { color: 'warning', icon: 'chevron-up', label: 'High' },
+                                'urgent': { color: 'error', icon: 'exclamation', label: 'Urgent' }
+                            } %}
+                            {% set priority = priorityConfig[notification.priority] ?? priorityConfig['normal'] %}
+
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-{{ priority.color }}-100 text-{{ priority.color }}-800">
+                                <svg class="w-3 h-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    {% if priority.icon == 'chevron-down' %}
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                                    {% elseif priority.icon == 'minus' %}
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4" />
+                                    {% elseif priority.icon == 'chevron-up' %}
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7" />
+                                    {% else %}
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.07 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                                    {% endif %}
+                                </svg>
+                                {{ priority.label }}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            {% set statusConfig = {
+                                'pending': { color: 'warning', icon: 'clock', label: 'Pending' },
+                                'sent': { color: 'success', icon: 'check-circle', label: 'Sent' },
+                                'failed': { color: 'error', icon: 'x-circle', label: 'Failed' },
+                                'cancelled': { color: 'gray', icon: 'ban', label: 'Cancelled' }
+                            } %}
+                            {% set status = statusConfig[notification.status] ?? statusConfig['pending'] %}
+
+                            <div class="flex items-center space-x-2">
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-{{ status.color }}-100 text-{{ status.color }}-800">
+                                    <svg class="w-3 h-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        {% if status.icon == 'clock' %}
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                        {% elseif status.icon == 'check-circle' %}
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                        {% elseif status.icon == 'x-circle' %}
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                        {% else %}
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728L5.636 5.636m12.728 12.728L18.364 5.636M5.636 18.364l12.728-12.728" />
+                                        {% endif %}
+                                    </svg>
+                                    {{ status.label }}
+                                </span>
+
+                                <!-- Quick Actions for Failed Notifications -->
+                                {% if notification.status == 'failed' %}
+                                    <button @click="resendNotification({{ notification.id }})" class="text-warning-600 hover:text-warning-900 p-1 rounded-md hover:bg-warning-50 transition-colors duration-150" title="Resend">
+                                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                        </svg>
+                                    </button>
+                                {% endif %}
+
+                                <!-- Cancel for Pending Notifications -->
+                                {% if notification.status == 'pending' %}
+                                    <button @click="cancelNotification({{ notification.id }})" class="text-error-600 hover:text-error-900 p-1 rounded-md hover:bg-error-50 transition-colors duration-150" title="Cancel">
+                                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                        </svg>
+                                    </button>
+                                {% endif %}
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="text-sm text-gray-900">
+                                <div class="flex items-center space-x-1 mb-1">
+                                    <svg class="w-3 h-3 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                    <span class="text-xs">Created:</span>
+                                </div>
+                                <div class="text-xs text-gray-500 mb-2">{{ notification.createdAt|date('M j, Y g:i A') }}</div>
+
+                                {% if notification.scheduledAt %}
+                                    <div class="flex items-center space-x-1">
+                                        <svg class="w-3 h-3 text-warning-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3a1 1 0 011-1h6a1 1 0 011 1v4m-6 0h6m-6 0a1 1 0 00-1 1v10a1 1 0 001 1h6a1 1 0 001-1V8a1 1 0 00-1-1H8z" />
+                                        </svg>
+                                        <span class="text-xs">Scheduled:</span>
+                                    </div>
+                                    <div class="text-xs text-warning-600">{{ notification.scheduledAt|date('M j, Y g:i A') }}</div>
+                                {% endif %}
+
+                                {% if notification.sentAt %}
+                                    <div class="flex items-center space-x-1 mt-2">
+                                        <svg class="w-3 h-3 text-success-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                        </svg>
+                                        <span class="text-xs">Sent:</span>
+                                    </div>
+                                    <div class="text-xs text-success-600">{{ notification.sentAt|date('M j, Y g:i A') }}</div>
+                                {% endif %}
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                            <div class="flex items-center justify-end space-x-2">
+                                <!-- View Details -->
+                                <a href="{{ path('admin_notification_show', {id: notification.id}) }}" class="text-skywave-600 hover:text-skywave-900 p-1 rounded-md hover:bg-skywave-50 transition-colors duration-150">
+                                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                    </svg>
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="8" class="px-6 py-12 text-center">
+                            <div class="flex flex-col items-center justify-center">
+                                <svg class="w-12 h-12 text-gray-400 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-5 5v-5zM21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                <h3 class="text-lg font-medium text-gray-900 mb-1">No notifications found</h3>
+                                <p class="text-gray-500 mb-4">No notifications match your current search and filter criteria.</p>
+                                <a href="{{ path('admin_notification_create') }}" class="btn btn-primary">
+                                    <svg class="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                                    </svg>
+                                    Create First Notification
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination -->
+        {% if total_pages > 1 %}
+        <div class="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
+            <div class="flex-1 flex justify-between sm:hidden">
+                {% if current_page > 1 %}
+                    <a href="{{ path('admin_notifications', filters|merge({page: current_page - 1})) }}" class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">Previous</a>
+                {% endif %}
+                {% if current_page < total_pages %}
+                    <a href="{{ path('admin_notifications', filters|merge({page: current_page + 1})) }}" class="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">Next</a>
+                {% endif %}
+            </div>
+            <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+                <div>
+                    <p class="text-sm text-gray-700">
+                        Showing <span class="font-medium">{{ (current_page - 1) * 25 + 1 }}</span> to <span class="font-medium">{{ min(current_page * 25, total_notifications) }}</span> of <span class="font-medium">{{ total_notifications }}</span> results
+                    </p>
+                </div>
+                <div>
+                    <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+                        {% if current_page > 1 %}
+                            <a href="{{ path('admin_notifications', filters|merge({page: current_page - 1})) }}" class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
+                                <span class="sr-only">Previous</span>
+                                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+                                </svg>
+                            </a>
+                        {% endif %}
+
+                        {% for page in 1..total_pages %}
+                            {% if page == current_page %}
+                                <span class="relative inline-flex items-center px-4 py-2 border border-skywave-500 bg-skywave-50 text-sm font-medium text-skywave-600">{{ page }}</span>
+                            {% elseif page == 1 or page == total_pages or (page >= current_page - 2 and page <= current_page + 2) %}
+                                <a href="{{ path('admin_notifications', filters|merge({page: page})) }}" class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50">{{ page }}</a>
+                            {% elseif page == current_page - 3 or page == current_page + 3 %}
+                                <span class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700">...</span>
+                            {% endif %}
+                        {% endfor %}
+
+                        {% if current_page < total_pages %}
+                            <a href="{{ path('admin_notifications', filters|merge({page: current_page + 1})) }}" class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
+                                <span class="sr-only">Next</span>
+                                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                                </svg>
+                            </a>
+                        {% endif %}
+                    </nav>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Notification Statistics Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div class="bg-white overflow-hidden shadow rounded-lg border border-gray-200">
+            <div class="p-5">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <div class="w-8 h-8 bg-skywave-500 rounded-md flex items-center justify-center">
+                            <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="ml-5 w-0 flex-1">
+                        <dl>
+                            <dt class="text-sm font-medium text-gray-500 truncate">Email Notifications</dt>
+                            <dd class="text-lg font-medium text-gray-900">{{ statistics.email_notifications|number_format }}</dd>
+                        </dl>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white overflow-hidden shadow rounded-lg border border-gray-200">
+            <div class="p-5">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <div class="w-8 h-8 bg-success-500 rounded-md flex items-center justify-center">
+                            <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="ml-5 w-0 flex-1">
+                        <dl>
+                            <dt class="text-sm font-medium text-gray-500 truncate">SMS Notifications</dt>
+                            <dd class="text-lg font-medium text-gray-900">{{ statistics.sms_notifications|number_format }}</dd>
+                        </dl>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white overflow-hidden shadow rounded-lg border border-gray-200">
+            <div class="p-5">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <div class="w-8 h-8 bg-success-500 rounded-md flex items-center justify-center">
+                            <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="ml-5 w-0 flex-1">
+                        <dl>
+                            <dt class="text-sm font-medium text-gray-500 truncate">Sent This Month</dt>
+                            <dd class="text-lg font-medium text-gray-900">{{ statistics.sent_this_month|number_format }}</dd>
+                        </dl>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white overflow-hidden shadow rounded-lg border border-gray-200">
+            <div class="p-5">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <div class="w-8 h-8 bg-error-500 rounded-md flex items-center justify-center">
+                            <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="ml-5 w-0 flex-1">
+                        <dl>
+                            <dt class="text-sm font-medium text-gray-500 truncate">Failed</dt>
+                            <dd class="text-lg font-medium text-gray-900">{{ statistics.failed|number_format }}</dd>
+                        </dl>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function notificationsManager() {
+    return {
+        searchQuery: '{{ filters.search }}',
+        notifications: [],
+        selectedNotifications: [],
+        filters: {
+            type: '{{ filters.type }}',
+            status: '{{ filters.status }}',
+            priority: '{{ filters.priority }}'
+        },
+        loading: false,
+
+        init() {
+            // Initialize with server-side data
+            this.notifications = @json($notifications->toArray() ?? []);
+        },
+
+        searchNotifications() {
+            this.applyFilters();
+        },
+
+        applyFilters() {
+            this.loading = true;
+            const params = new URLSearchParams({
+                search: this.searchQuery,
+                type: this.filters.type,
+                status: this.filters.status,
+                priority: this.filters.priority
+            });
+
+            // Update URL without reload
+            const newUrl = `{{ path('admin_notifications') }}?${params.toString()}`;
+            window.history.pushState({}, '', newUrl);
+
+            // In a real app, you'd make an AJAX call here
+            setTimeout(() => {
+                this.loading = false;
+                this.showToast('Filters applied', 'success');
+            }, 500);
+        },
+
+        resetFilters() {
+            this.searchQuery = '';
+            this.filters = { type: '', status: '', priority: '' };
+            this.selectedNotifications = [];
+            window.location.href = '{{ path("admin_notifications") }}';
+        },
+
+        toggleSelectAll() {
+            if (this.selectedNotifications.length === this.notifications.length) {
+                this.selectedNotifications = [];
+            } else {
+                this.selectedNotifications = this.notifications.map(n => n.id);
+            }
+        },
+
+        clearSelection() {
+            this.selectedNotifications = [];
+        },
+
+        async bulkAction(action) {
+            if (this.selectedNotifications.length === 0) {
+                this.showToast('Please select notifications first', 'warning');
+                return;
+            }
+
+            const actionLabels = {
+                'resend': 'resend',
+                'cancel': 'cancel',
+                'delete': 'delete'
+            };
+
+            if (!confirm(`Are you sure you want to ${actionLabels[action]} ${this.selectedNotifications.length} notification(s)?`)) {
+                return;
+            }
+
+            try {
+                const response = await fetch('{{ path("admin_notifications_bulk_action") }}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    body: JSON.stringify({
+                        action: action,
+                        notification_ids: this.selectedNotifications
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    this.showToast(result.message, 'success');
+                    this.selectedNotifications = [];
+                    setTimeout(() => window.location.reload(), 1000);
+                } else {
+                    this.showToast(result.error || 'Operation failed', 'error');
+                }
+            } catch (error) {
+                this.showToast('Network error occurred', 'error');
+                console.error('Bulk action error:', error);
+            }
+        },
+
+        async resendNotification(notificationId) {
+            try {
+                const response = await fetch(`/admin/notifications/${notificationId}/resend`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    this.showToast(result.message, 'success');
+                    setTimeout(() => window.location.reload(), 1000);
+                } else {
+                    this.showToast(result.error || 'Failed to resend notification', 'error');
+                }
+            } catch (error) {
+                this.showToast('Network error occurred', 'error');
+                console.error('Resend error:', error);
+            }
+        },
+
+        async cancelNotification(notificationId) {
+            if (!confirm('Are you sure you want to cancel this notification?')) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/admin/notifications/${notificationId}/cancel`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    this.showToast(result.message, 'success');
+                    setTimeout(() => window.location.reload(), 1000);
+                } else {
+                    this.showToast(result.error || 'Failed to cancel notification', 'error');
+                }
+            } catch (error) {
+                this.showToast('Network error occurred', 'error');
+                console.error('Cancel error:', error);
+            }
+        },
+
+        showToast(message, type = 'info') {
+            // Create toast notification
+            const toast = document.createElement('div');
+            toast.className = `fixed top-4 right-4 z-50 max-w-sm bg-white shadow-lg rounded-lg border-l-4 border-${type === 'success' ? 'success' : type === 'error' ? 'error' : type === 'warning' ? 'warning' : 'skywave'}-500 p-4 transform transition-all duration-300 translate-x-full`;
+
+            toast.innerHTML = `
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        ${this.getToastIcon(type)}
+                    </div>
+                    <div class="ml-3">
+                        <p class="text-sm font-medium text-gray-900">${message}</p>
+                    </div>
+                    <div class="ml-auto pl-3">
+                        <button onclick="this.parentElement.parentElement.parentElement.remove()" class="text-gray-400 hover:text-gray-600">
+                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            `;
+
+            document.body.appendChild(toast);
+
+            // Slide in
+            setTimeout(() => {
+                toast.classList.remove('translate-x-full');
+            }, 100);
+
+            // Auto remove after 5 seconds
+            setTimeout(() => {
+                toast.classList.add('translate-x-full');
+                setTimeout(() => toast.remove(), 300);
+            }, 5000);
+        },
+
+        getToastIcon(type) {
+            const icons = {
+                success: '<svg class="w-5 h-5 text-success-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>',
+                error: '<svg class="w-5 h-5 text-error-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>',
+                warning: '<svg class="w-5 h-5 text-warning-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.07 16.5c-.77.833.192 2.5 1.732 2.5z" /></svg>',
+                info: '<svg class="w-5 h-5 text-skywave-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>'
+            };
+            return icons[type] || icons.info;
+        }
+    }
+}
+
+// Broadcast modal (placeholder)
+function openBroadcastModal() {
+    alert('Broadcast Modal - This would allow sending bulk notifications to customer segments or all users');
+    // In real implementation, this would open a comprehensive broadcast modal
+}
+</script>
+{% endblock %}

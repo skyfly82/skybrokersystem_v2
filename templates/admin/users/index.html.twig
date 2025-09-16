@@ -1,0 +1,855 @@
+{% extends "layouts/admin.html.twig" %}
+
+{% block page_title %}System User Management{% endblock %}
+{% block page_heading %}System User Management{% endblock %}
+{% block page_description %}
+    <p class="mt-1 text-sm text-gray-500">Manage system administrators, staff members, and their permissions</p>
+{% endblock %}
+
+{% block page_actions %}
+<div class="flex items-center space-x-3">
+    <!-- Quick Stats -->
+    <div class="hidden lg:flex items-center space-x-4 px-4 py-2 bg-gray-50 rounded-lg">
+        <div class="text-center">
+            <div class="text-sm font-bold text-success-600">{{ statistics.active }}</div>
+            <div class="text-xs text-gray-500">Active</div>
+        </div>
+        <div class="text-center">
+            <div class="text-sm font-bold text-skywave-600">{{ statistics.admin }}</div>
+            <div class="text-xs text-gray-500">Admins</div>
+        </div>
+        <div class="text-center">
+            <div class="text-sm font-bold text-warning-600">{{ statistics.support }}</div>
+            <div class="text-xs text-gray-500">Support</div>
+        </div>
+    </div>
+
+    <!-- Invite User Button -->
+    <button onclick="openInviteModal()" class="btn btn-secondary text-sm">
+        <svg class="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+        </svg>
+        Invite User
+    </button>
+
+    <!-- Create User Button -->
+    <a href="{{ path('admin_user_create') }}" class="btn btn-primary text-sm shadow-md hover:shadow-lg transition-shadow duration-200">
+        <svg class="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+        </svg>
+        Add User
+    </a>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="space-y-6" x-data="usersManager()">
+    <!-- Search and Filters Bar -->
+    <div class="bg-white shadow rounded-lg border border-gray-200">
+        <div class="p-4 border-b border-gray-200">
+            <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-4 lg:space-y-0">
+                <!-- Search Input -->
+                <div class="flex-1 max-w-lg">
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <svg class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                            </svg>
+                        </div>
+                        <input
+                            type="text"
+                            x-model="searchQuery"
+                            @input.debounce.500ms="searchUsers()"
+                            placeholder="Search users by name, email, or department..."
+                            class="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-skywave-500 focus:border-skywave-500"
+                        >
+                    </div>
+                </div>
+
+                <!-- Filter Controls -->
+                <div class="flex items-center space-x-3">
+                    <!-- Department Filter -->
+                    <select x-model="filters.department" @change="applyFilters()" class="form-select text-sm border-gray-300 rounded-md focus:ring-skywave-500 focus:border-skywave-500">
+                        <option value="">All Departments</option>
+                        <option value="admin">Administration</option>
+                        <option value="support">Support</option>
+                        <option value="sales">Sales</option>
+                        <option value="marketing">Marketing</option>
+                        <option value="operations">Operations</option>
+                    </select>
+
+                    <!-- Status Filter -->
+                    <select x-model="filters.status" @change="applyFilters()" class="form-select text-sm border-gray-300 rounded-md focus:ring-skywave-500 focus:border-skywave-500">
+                        <option value="">All Status</option>
+                        <option value="active">Active</option>
+                        <option value="inactive">Inactive</option>
+                        <option value="suspended">Suspended</option>
+                    </select>
+
+                    <!-- Reset Filters -->
+                    <button @click="resetFilters()" class="btn btn-outline text-sm">
+                        <svg class="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                        </svg>
+                        Reset
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bulk Actions Bar -->
+        <div x-show="selectedUsers.length > 0" class="px-4 py-3 bg-skywave-50 border-b border-skywave-200">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                    <span class="text-sm text-skywave-700 font-medium" x-text="`${selectedUsers.length} user(s) selected`"></span>
+                    <div class="flex items-center space-x-2">
+                        <button @click="bulkAction('activate')" class="btn btn-sm btn-success">Activate</button>
+                        <button @click="bulkAction('deactivate')" class="btn btn-sm btn-warning">Deactivate</button>
+                        <button @click="bulkAction('suspend')" class="btn btn-sm btn-error">Suspend</button>
+                        <button @click="bulkPasswordReset()" class="btn btn-sm btn-secondary">Reset Passwords</button>
+                    </div>
+                </div>
+                <button @click="clearSelection()" class="text-skywave-600 hover:text-skywave-800 text-sm font-medium">
+                    Clear Selection
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Users Table -->
+    <div class="bg-white shadow rounded-lg border border-gray-200 overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th scope="col" class="relative px-6 py-3">
+                            <input
+                                type="checkbox"
+                                @change="toggleSelectAll()"
+                                :checked="selectedUsers.length === users.length && users.length > 0"
+                                class="absolute left-4 top-1/2 -mt-2 h-4 w-4 text-skywave-600 focus:ring-skywave-500 border-gray-300 rounded"
+                            >
+                        </th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer" @click="sortBy('name')">
+                            <div class="flex items-center space-x-1">
+                                <span>User</span>
+                                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+                                </svg>
+                            </div>
+                        </th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Contact</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Department</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Roles</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Last Login</th>
+                        <th scope="col" class="relative px-6 py-3">
+                            <span class="sr-only">Actions</span>
+                        </th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    {% for user in users %}
+                    <tr class="hover:bg-gray-50 transition-colors duration-150" x-data="{ userId: {{ user.id }} }">
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <input
+                                type="checkbox"
+                                :value="userId"
+                                x-model="selectedUsers"
+                                class="h-4 w-4 text-skywave-600 focus:ring-skywave-500 border-gray-300 rounded"
+                            >
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="flex items-center">
+                                <div class="flex-shrink-0 h-10 w-10">
+                                    <div class="h-10 w-10 rounded-full bg-gradient-to-r from-skywave-400 to-skywave-600 flex items-center justify-center">
+                                        <span class="text-sm font-medium text-white">{{ user.firstName|first|upper }}{{ user.lastName|first|upper }}</span>
+                                    </div>
+                                </div>
+                                <div class="ml-4">
+                                    <div class="text-sm font-medium text-gray-900">
+                                        <a href="{{ path('admin_user_show', {id: user.id}) }}" class="hover:text-skywave-600 transition-colors duration-150">
+                                            {{ user.fullName }}
+                                        </a>
+                                    </div>
+                                    <div class="text-sm text-gray-500">
+                                        {% if user.position %}{{ user.position }}{% else %}Staff Member{% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            <div class="flex items-center space-x-1 mb-1">
+                                <svg class="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                                </svg>
+                                <span>{{ user.email }}</span>
+                                {% if user.emailVerified %}
+                                    <svg class="w-3 h-3 text-success-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                {% endif %}
+                            </div>
+                            {% if user.phone %}
+                                <div class="flex items-center space-x-1 text-gray-500">
+                                    <svg class="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                                    </svg>
+                                    <span>{{ user.phone }}</span>
+                                </div>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            {% set departmentConfig = {
+                                'admin': { color: 'error', icon: 'shield-check', label: 'Administration' },
+                                'support': { color: 'success', icon: 'support', label: 'Support' },
+                                'sales': { color: 'warning', icon: 'trending-up', label: 'Sales' },
+                                'marketing': { color: 'purple', icon: 'speakerphone', label: 'Marketing' },
+                                'operations': { color: 'skywave', icon: 'cog', label: 'Operations' }
+                            } %}
+                            {% set dept = departmentConfig[user.department] ?? { color: 'gray', icon: 'office-building', label: user.department|title } %}
+
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-{{ dept.color }}-100 text-{{ dept.color }}-800">
+                                <svg class="w-3 h-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    {% if dept.icon == 'shield-check' %}
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                                    {% elseif dept.icon == 'support' %}
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192L5.636 18.364M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z" />
+                                    {% elseif dept.icon == 'trending-up' %}
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                                    {% elseif dept.icon == 'speakerphone' %}
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" />
+                                    {% elseif dept.icon == 'cog' %}
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                                    {% else %}
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                                    {% endif %}
+                                </svg>
+                                {{ dept.label }}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="flex flex-wrap gap-1">
+                                {% for role in user.roles %}
+                                    {% if role != 'ROLE_SYSTEM_USER' %}
+                                        {% set roleConfig = {
+                                            'ROLE_ADMIN': { color: 'error', label: 'Admin' },
+                                            'ROLE_SUPPORT': { color: 'success', label: 'Support' },
+                                            'ROLE_MARKETING': { color: 'purple', label: 'Marketing' },
+                                            'ROLE_SALES': { color: 'warning', label: 'Sales' },
+                                            'ROLE_OPERATIONS': { color: 'skywave', label: 'Operations' }
+                                        } %}
+                                        {% set roleInfo = roleConfig[role] ?? { color: 'gray', label: role|replace({'ROLE_': ''})|title } %}
+
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-{{ roleInfo.color }}-100 text-{{ roleInfo.color }}-800">
+                                            {{ roleInfo.label }}
+                                        </span>
+                                    {% endif %}
+                                {% endfor %}
+
+                                <!-- Manage Roles Button -->
+                                <button @click="manageRoles({{ user.id }}, {{ user.roles|json_encode }})" class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors duration-150">
+                                    <svg class="w-3 h-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                                    </svg>
+                                    Manage
+                                </button>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="flex items-center space-x-2">
+                                {% set statusConfig = {
+                                    'active': { color: 'success', icon: 'check-circle', label: 'Active' },
+                                    'inactive': { color: 'warning', icon: 'pause-circle', label: 'Inactive' },
+                                    'suspended': { color: 'error', icon: 'x-circle', label: 'Suspended' }
+                                } %}
+                                {% set status = statusConfig[user.status] ?? statusConfig['inactive'] %}
+
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-{{ status.color }}-100 text-{{ status.color }}-800">
+                                    <svg class="w-3 h-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        {% if status.icon == 'check-circle' %}
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                        {% elseif status.icon == 'pause-circle' %}
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                        {% else %}
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                        {% endif %}
+                                    </svg>
+                                    {{ status.label }}
+                                </span>
+
+                                <!-- Quick Status Toggle -->
+                                <div x-data="{ showStatusMenu: false }" class="relative">
+                                    <button @click="showStatusMenu = !showStatusMenu" class="text-gray-400 hover:text-gray-600 p-1 rounded">
+                                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+                                        </svg>
+                                    </button>
+                                    <div x-show="showStatusMenu" @click.away="showStatusMenu = false" class="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg z-10 border border-gray-200">
+                                        <div class="py-1">
+                                            <button @click="updateUserStatus({{ user.id }}, 'active')" class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                                <span class="flex items-center">
+                                                    <span class="w-2 h-2 bg-success-500 rounded-full mr-2"></span>
+                                                    Set Active
+                                                </span>
+                                            </button>
+                                            <button @click="updateUserStatus({{ user.id }}, 'inactive')" class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                                <span class="flex items-center">
+                                                    <span class="w-2 h-2 bg-warning-500 rounded-full mr-2"></span>
+                                                    Set Inactive
+                                                </span>
+                                            </button>
+                                            <button @click="updateUserStatus({{ user.id }}, 'suspended')" class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                                <span class="flex items-center">
+                                                    <span class="w-2 h-2 bg-error-500 rounded-full mr-2"></span>
+                                                    Suspend
+                                                </span>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {% if user.lastLoginAt %}
+                                <div class="flex items-center">
+                                    <svg class="w-4 h-4 text-gray-400 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
+                                    </svg>
+                                    <div>
+                                        <div>{{ user.lastLoginAt|date('M j, Y') }}</div>
+                                        <div class="text-xs text-gray-400">{{ user.lastLoginAt|date('g:i A') }}</div>
+                                    </div>
+                                </div>
+                            {% else %}
+                                <div class="flex items-center text-gray-400">
+                                    <svg class="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                    Never logged in
+                                </div>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                            <div class="flex items-center justify-end space-x-2">
+                                <!-- Reset Password -->
+                                <button @click="resetPassword({{ user.id }})" class="text-warning-600 hover:text-warning-900 p-1 rounded-md hover:bg-warning-50 transition-colors duration-150" title="Reset Password">
+                                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                                    </svg>
+                                </button>
+
+                                <!-- View User -->
+                                <a href="{{ path('admin_user_show', {id: user.id}) }}" class="text-skywave-600 hover:text-skywave-900 p-1 rounded-md hover:bg-skywave-50 transition-colors duration-150">
+                                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                    </svg>
+                                </a>
+
+                                <!-- Edit User -->
+                                <a href="{{ path('admin_user_edit', {id: user.id}) }}" class="text-gray-600 hover:text-gray-900 p-1 rounded-md hover:bg-gray-50 transition-colors duration-150">
+                                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                    </svg>
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="8" class="px-6 py-12 text-center">
+                            <div class="flex flex-col items-center justify-center">
+                                <svg class="w-12 h-12 text-gray-400 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
+                                </svg>
+                                <h3 class="text-lg font-medium text-gray-900 mb-1">No users found</h3>
+                                <p class="text-gray-500 mb-4">Get started by creating your first system user.</p>
+                                <a href="{{ path('admin_user_create') }}" class="btn btn-primary">
+                                    <svg class="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                                    </svg>
+                                    Add First User
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination -->
+        {% if total_pages > 1 %}
+        <div class="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
+            <div class="flex-1 flex justify-between sm:hidden">
+                {% if current_page > 1 %}
+                    <a href="{{ path('admin_users', filters|merge({page: current_page - 1})) }}" class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">Previous</a>
+                {% endif %}
+                {% if current_page < total_pages %}
+                    <a href="{{ path('admin_users', filters|merge({page: current_page + 1})) }}" class="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">Next</a>
+                {% endif %}
+            </div>
+            <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+                <div>
+                    <p class="text-sm text-gray-700">
+                        Showing <span class="font-medium">{{ (current_page - 1) * 25 + 1 }}</span> to <span class="font-medium">{{ min(current_page * 25, total_users) }}</span> of <span class="font-medium">{{ total_users }}</span> results
+                    </p>
+                </div>
+                <div>
+                    <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+                        {% if current_page > 1 %}
+                            <a href="{{ path('admin_users', filters|merge({page: current_page - 1})) }}" class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
+                                <span class="sr-only">Previous</span>
+                                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+                                </svg>
+                            </a>
+                        {% endif %}
+
+                        {% for page in 1..total_pages %}
+                            {% if page == current_page %}
+                                <span class="relative inline-flex items-center px-4 py-2 border border-skywave-500 bg-skywave-50 text-sm font-medium text-skywave-600">{{ page }}</span>
+                            {% elseif page == 1 or page == total_pages or (page >= current_page - 2 and page <= current_page + 2) %}
+                                <a href="{{ path('admin_users', filters|merge({page: page})) }}" class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50">{{ page }}</a>
+                            {% elseif page == current_page - 3 or page == current_page + 3 %}
+                                <span class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700">...</span>
+                            {% endif %}
+                        {% endfor %}
+
+                        {% if current_page < total_pages %}
+                            <a href="{{ path('admin_users', filters|merge({page: current_page + 1})) }}" class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
+                                <span class="sr-only">Next</span>
+                                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                                </svg>
+                            </a>
+                        {% endif %}
+                    </nav>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- User Statistics Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div class="bg-white overflow-hidden shadow rounded-lg border border-gray-200">
+            <div class="p-5">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <div class="w-8 h-8 bg-skywave-500 rounded-md flex items-center justify-center">
+                            <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="ml-5 w-0 flex-1">
+                        <dl>
+                            <dt class="text-sm font-medium text-gray-500 truncate">Total Users</dt>
+                            <dd class="text-lg font-medium text-gray-900">{{ statistics.total|number_format }}</dd>
+                        </dl>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white overflow-hidden shadow rounded-lg border border-gray-200">
+            <div class="p-5">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <div class="w-8 h-8 bg-success-500 rounded-md flex items-center justify-center">
+                            <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="ml-5 w-0 flex-1">
+                        <dl>
+                            <dt class="text-sm font-medium text-gray-500 truncate">Active Users</dt>
+                            <dd class="text-lg font-medium text-gray-900">{{ statistics.active|number_format }}</dd>
+                        </dl>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white overflow-hidden shadow rounded-lg border border-gray-200">
+            <div class="p-5">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <div class="w-8 h-8 bg-error-500 rounded-md flex items-center justify-center">
+                            <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="ml-5 w-0 flex-1">
+                        <dl>
+                            <dt class="text-sm font-medium text-gray-500 truncate">Administrators</dt>
+                            <dd class="text-lg font-medium text-gray-900">{{ statistics.admin|number_format }}</dd>
+                        </dl>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white overflow-hidden shadow rounded-lg border border-gray-200">
+            <div class="p-5">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <div class="w-8 h-8 bg-warning-500 rounded-md flex items-center justify-center">
+                            <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192L5.636 18.364M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z" />
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="ml-5 w-0 flex-1">
+                        <dl>
+                            <dt class="text-sm font-medium text-gray-500 truncate">Support Staff</dt>
+                            <dd class="text-lg font-medium text-gray-900">{{ statistics.support|number_format }}</dd>
+                        </dl>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function usersManager() {
+    return {
+        searchQuery: '{{ filters.search }}',
+        users: [],
+        selectedUsers: [],
+        filters: {
+            department: '{{ filters.department }}',
+            status: '{{ filters.status }}'
+        },
+        sortField: '',
+        sortDirection: 'asc',
+        loading: false,
+
+        init() {
+            // Initialize with server-side data
+            this.users = @json($users->toArray() ?? []);
+        },
+
+        searchUsers() {
+            this.applyFilters();
+        },
+
+        applyFilters() {
+            this.loading = true;
+            const params = new URLSearchParams({
+                search: this.searchQuery,
+                department: this.filters.department,
+                status: this.filters.status
+            });
+
+            // Update URL without reload
+            const newUrl = `{{ path('admin_users') }}?${params.toString()}`;
+            window.history.pushState({}, '', newUrl);
+
+            // In a real app, you'd make an AJAX call here
+            setTimeout(() => {
+                this.loading = false;
+                this.showToast('Filters applied', 'success');
+            }, 500);
+        },
+
+        resetFilters() {
+            this.searchQuery = '';
+            this.filters = { department: '', status: '' };
+            this.selectedUsers = [];
+            window.location.href = '{{ path("admin_users") }}';
+        },
+
+        sortBy(field) {
+            if (this.sortField === field) {
+                this.sortDirection = this.sortDirection === 'asc' ? 'desc' : 'asc';
+            } else {
+                this.sortField = field;
+                this.sortDirection = 'asc';
+            }
+            this.applyFilters();
+        },
+
+        toggleSelectAll() {
+            if (this.selectedUsers.length === this.users.length) {
+                this.selectedUsers = [];
+            } else {
+                this.selectedUsers = this.users.map(u => u.id);
+            }
+        },
+
+        clearSelection() {
+            this.selectedUsers = [];
+        },
+
+        async bulkAction(action) {
+            if (this.selectedUsers.length === 0) {
+                this.showToast('Please select users first', 'warning');
+                return;
+            }
+
+            if (!confirm(`Are you sure you want to ${action} ${this.selectedUsers.length} user(s)?`)) {
+                return;
+            }
+
+            try {
+                const response = await fetch('{{ path("admin_users_bulk_action") }}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    body: JSON.stringify({
+                        action: action,
+                        user_ids: this.selectedUsers
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    this.showToast(result.message, 'success');
+                    this.selectedUsers = [];
+                    setTimeout(() => window.location.reload(), 1000);
+                } else {
+                    this.showToast(result.error || 'Operation failed', 'error');
+                }
+            } catch (error) {
+                this.showToast('Network error occurred', 'error');
+                console.error('Bulk action error:', error);
+            }
+        },
+
+        async updateUserStatus(userId, status) {
+            try {
+                const response = await fetch(`/admin/users/${userId}/status`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    body: JSON.stringify({ status: status })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    this.showToast(result.message, 'success');
+                    setTimeout(() => window.location.reload(), 1000);
+                } else {
+                    this.showToast(result.error || 'Failed to update status', 'error');
+                }
+            } catch (error) {
+                this.showToast('Network error occurred', 'error');
+                console.error('Status update error:', error);
+            }
+        },
+
+        async resetPassword(userId) {
+            const newPassword = prompt('Enter new password for user (minimum 8 characters):');
+
+            if (!newPassword) return;
+
+            if (newPassword.length < 8) {
+                this.showToast('Password must be at least 8 characters long', 'error');
+                return;
+            }
+
+            const sendEmail = confirm('Send password reset email to user?');
+
+            try {
+                const response = await fetch(`/admin/users/${userId}/reset-password`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    body: JSON.stringify({
+                        password: newPassword,
+                        send_email: sendEmail
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    this.showToast(result.message, 'success');
+                } else {
+                    this.showToast(result.error || 'Failed to reset password', 'error');
+                }
+            } catch (error) {
+                this.showToast('Network error occurred', 'error');
+                console.error('Password reset error:', error);
+            }
+        },
+
+        async bulkPasswordReset() {
+            if (this.selectedUsers.length === 0) {
+                this.showToast('Please select users first', 'warning');
+                return;
+            }
+
+            if (!confirm(`Generate new passwords for ${this.selectedUsers.length} user(s) and send email notifications?`)) {
+                return;
+            }
+
+            try {
+                const promises = this.selectedUsers.map(userId =>
+                    fetch(`/admin/users/${userId}/reset-password`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest'
+                        },
+                        body: JSON.stringify({
+                            password: this.generateRandomPassword(),
+                            send_email: true
+                        })
+                    })
+                );
+
+                const responses = await Promise.all(promises);
+                const results = await Promise.all(responses.map(r => r.json()));
+
+                const successful = results.filter(r => r.success).length;
+                const failed = results.length - successful;
+
+                if (successful > 0) {
+                    this.showToast(`${successful} password(s) reset successfully${failed > 0 ? `, ${failed} failed` : ''}`, successful > failed ? 'success' : 'warning');
+                    this.selectedUsers = [];
+                } else {
+                    this.showToast('All password resets failed', 'error');
+                }
+            } catch (error) {
+                this.showToast('Network error occurred', 'error');
+                console.error('Bulk password reset error:', error);
+            }
+        },
+
+        async manageRoles(userId, currentRoles) {
+            // This would open a modal to manage user roles
+            const availableRoles = [
+                'ROLE_ADMIN',
+                'ROLE_SUPPORT',
+                'ROLE_MARKETING',
+                'ROLE_SALES',
+                'ROLE_OPERATIONS'
+            ];
+
+            const rolesText = availableRoles.map(role => {
+                const roleName = role.replace('ROLE_', '').toLowerCase();
+                const checked = currentRoles.includes(role) ? '[x]' : '[ ]';
+                return `${checked} ${roleName}`;
+            }).join('\n');
+
+            const newRolesInput = prompt(`Manage roles for user:\n\n${rolesText}\n\nEnter comma-separated roles (admin, support, marketing, sales, operations):`);
+
+            if (newRolesInput === null) return;
+
+            const newRoles = newRolesInput.split(',').map(role => {
+                const trimmed = role.trim().toLowerCase();
+                return 'ROLE_' + trimmed.toUpperCase();
+            }).filter(role => availableRoles.includes(role));
+
+            // Always include ROLE_SYSTEM_USER
+            newRoles.push('ROLE_SYSTEM_USER');
+
+            try {
+                const response = await fetch(`/admin/users/${userId}/roles`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    body: JSON.stringify({ roles: newRoles })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    this.showToast(result.message, 'success');
+                    setTimeout(() => window.location.reload(), 1000);
+                } else {
+                    this.showToast(result.error || 'Failed to update roles', 'error');
+                }
+            } catch (error) {
+                this.showToast('Network error occurred', 'error');
+                console.error('Roles update error:', error);
+            }
+        },
+
+        generateRandomPassword() {
+            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*';
+            let password = '';
+            for (let i = 0; i < 12; i++) {
+                password += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            return password;
+        },
+
+        showToast(message, type = 'info') {
+            // Create toast notification
+            const toast = document.createElement('div');
+            toast.className = `fixed top-4 right-4 z-50 max-w-sm bg-white shadow-lg rounded-lg border-l-4 border-${type === 'success' ? 'success' : type === 'error' ? 'error' : type === 'warning' ? 'warning' : 'skywave'}-500 p-4 transform transition-all duration-300 translate-x-full`;
+
+            toast.innerHTML = `
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        ${this.getToastIcon(type)}
+                    </div>
+                    <div class="ml-3">
+                        <p class="text-sm font-medium text-gray-900">${message}</p>
+                    </div>
+                    <div class="ml-auto pl-3">
+                        <button onclick="this.parentElement.parentElement.parentElement.remove()" class="text-gray-400 hover:text-gray-600">
+                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            `;
+
+            document.body.appendChild(toast);
+
+            // Slide in
+            setTimeout(() => {
+                toast.classList.remove('translate-x-full');
+            }, 100);
+
+            // Auto remove after 5 seconds
+            setTimeout(() => {
+                toast.classList.add('translate-x-full');
+                setTimeout(() => toast.remove(), 300);
+            }, 5000);
+        },
+
+        getToastIcon(type) {
+            const icons = {
+                success: '<svg class="w-5 h-5 text-success-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>',
+                error: '<svg class="w-5 h-5 text-error-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>',
+                warning: '<svg class="w-5 h-5 text-warning-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.07 16.5c-.77.833.192 2.5 1.732 2.5z" /></svg>',
+                info: '<svg class="w-5 h-5 text-skywave-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>'
+            };
+            return icons[type] || icons.info;
+        }
+    }
+}
+
+// Invite user modal (placeholder)
+function openInviteModal() {
+    const email = prompt('Enter email address to invite:');
+    if (email && email.includes('@')) {
+        alert(`Invitation sent to ${email}! They will receive an email with setup instructions.`);
+        // In real implementation, this would make an API call to send invitation
+    } else if (email) {
+        alert('Please enter a valid email address.');
+    }
+}
+</script>
+{% endblock %}

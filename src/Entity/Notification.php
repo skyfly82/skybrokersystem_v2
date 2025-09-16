@@ -47,7 +47,7 @@ class Notification
     #[ORM\Column(length: 50)]
     private ?string $priority = 'normal'; // 'low', 'normal', 'high', 'urgent'
 
-    #[ORM\Column(nullable: true)]
+    #[ORM\Column(name: 'is_read', nullable: true)]
     private ?bool $read = false;
 
     #[ORM\Column(type: Types::DATETIME_MUTABLE, nullable: true)]
