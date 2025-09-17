@@ -239,3 +239,132 @@ services:
     App\Service\CourierServiceRegistry:
         arguments:
             $clients: !tagged_iterator { tag: 'courier.service' }
+
+    # MEEST Courier Services
+    App\Domain\Courier\Meest\ValueObject\MeestCredentials:
+        arguments:
+            $username: '%env(MEEST_USERNAME)%'
+            $password: '%env(MEEST_PASSWORD)%'
+            $baseUrl: '%env(MEEST_API_URL)%'
+
+    App\Domain\Courier\Meest\Service\MeestApiClient:
+        arguments:
+            $httpClient: '@http_client'
+            $logger: '@monolog.logger'
+            $credentials: '@App\Domain\Courier\Meest\ValueObject\MeestCredentials'
+            $cache: '@cache.app'
+        tags:
+            - { name: 'monolog.logger', channel: 'meest' }
+
+    App\Domain\Courier\Meest\Service\MeestTrackingNumberGenerator:
+        arguments:
+            $repository: '@App\Domain\Courier\Meest\Repository\MeestShipmentRepository'
+            $logger: '@monolog.logger'
+        tags:
+            - { name: 'monolog.logger', channel: 'meest' }
+
+    App\Domain\Courier\Meest\Service\MeestLabelService:
+        arguments:
+            $apiClient: '@App\Domain\Courier\Meest\Service\MeestApiClient'
+            $repository: '@App\Domain\Courier\Meest\Repository\MeestShipmentRepository'
+            $entityManager: '@doctrine.orm.entity_manager'
+            $httpClient: '@http_client'
+            $slugger: '@slugger'
+            $logger: '@monolog.logger'
+            $projectDir: '%kernel.project_dir%'
+        tags:
+            - { name: 'monolog.logger', channel: 'meest' }
+
+    App\Domain\Courier\Meest\Service\MeestBusinessValidator:
+        arguments:
+            $logger: '@monolog.logger'
+        tags:
+            - { name: 'monolog.logger', channel: 'meest' }
+
+    App\Domain\Courier\Meest\Service\MeestShipmentService:
+        arguments:
+            $apiClient: '@App\Domain\Courier\Meest\Service\MeestApiClient'
+            $repository: '@App\Domain\Courier\Meest\Repository\MeestShipmentRepository'
+            $entityManager: '@doctrine.orm.entity_manager'
+            $validator: '@validator'
+            $logger: '@monolog.logger'
+            $trackingNumberGenerator: '@App\Domain\Courier\Meest\Service\MeestTrackingNumberGenerator'
+            $labelService: '@App\Domain\Courier\Meest\Service\MeestLabelService'
+            $businessValidator: '@App\Domain\Courier\Meest\Service\MeestBusinessValidator'
+        tags:
+            - { name: 'monolog.logger', channel: 'meest' }
+            - { name: 'courier.service', alias: 'meest' }
+
+    App\Controller\Api\MeestShipmentController:
+        arguments:
+            $shipmentService: '@App\Domain\Courier\Meest\Service\MeestShipmentService'
+            $trackingService: '@App\Domain\Courier\Meest\Service\MeestTrackingService'
+            $labelService: '@App\Domain\Courier\Meest\Service\MeestLabelService'
+            $repository: '@App\Domain\Courier\Meest\Repository\MeestShipmentRepository'
+            $validator: '@validator'
+            $logger: '@monolog.logger'
+        tags:
+            - { name: 'monolog.logger', channel: 'meest' }
+            - { name: 'controller.service_arguments' }
+
+    # AI/ML Enhanced MEEST Services
+    App\Domain\Courier\Meest\Service\MeestAITrackingService:
+        arguments:
+            $apiClient: '@App\Domain\Courier\Meest\Service\MeestApiClient'
+            $trackingService: '@App\Domain\Courier\Meest\Service\MeestTrackingService'
+            $statusMapper: '@App\Domain\Courier\Meest\Service\MeestStatusMapper'
+            $shipmentRepository: '@App\Domain\Courier\Meest\Repository\MeestShipmentRepository'
+            $logger: '@monolog.logger'
+            $cache: '@cache.app'
+        tags:
+            - { name: 'monolog.logger', channel: 'meest_ai' }
+
+    App\Domain\Courier\Meest\Service\MeestMLPredictionService:
+        arguments:
+            $shipmentRepository: '@App\Domain\Courier\Meest\Repository\MeestShipmentRepository'
+            $logger: '@monolog.logger'
+            $cache: '@cache.app'
+        tags:
+            - { name: 'monolog.logger', channel: 'meest_ml' }
+
+    App\Domain\Courier\Meest\Service\MeestBackgroundUpdateService:
+        arguments:
+            $apiClient: '@App\Domain\Courier\Meest\Service\MeestApiClient'
+            $aiTrackingService: '@App\Domain\Courier\Meest\Service\MeestAITrackingService'
+            $mlPredictionService: '@App\Domain\Courier\Meest\Service\MeestMLPredictionService'
+            $shipmentRepository: '@App\Domain\Courier\Meest\Repository\MeestShipmentRepository'
+            $messageBus: '@messenger.default_bus'
+            $logger: '@monolog.logger'
+            $cache: '@cache.app'
+        tags:
+            - { name: 'monolog.logger', channel: 'meest_background' }
+
+    # MEEST AI Tracking Controller
+    App\Controller\Api\MeestTrackingController:
+        arguments:
+            $aiTrackingService: '@App\Domain\Courier\Meest\Service\MeestAITrackingService'
+            $apiClient: '@App\Domain\Courier\Meest\Service\MeestApiClient'
+            $logger: '@monolog.logger'
+        tags:
+            - { name: 'monolog.logger', channel: 'meest_tracking_api' }
+            - { name: 'controller.service_arguments' }
+
+    # MEEST Webhook Service
+    App\Domain\Courier\Meest\Service\MeestWebhookService:
+        arguments:
+            $shipmentRepository: '@App\Domain\Courier\Meest\Repository\MeestShipmentRepository'
+            $aiTrackingService: '@App\Domain\Courier\Meest\Service\MeestAITrackingService'
+            $httpClient: '@http_client'
+            $messageBus: '@messenger.default_bus'
+            $logger: '@monolog.logger'
+            $webhookSecret: '%env(MEEST_WEBHOOK_SECRET)%'
+        tags:
+            - { name: 'monolog.logger', channel: 'meest_webhook' }
+
+    # MEEST AI Commands
+    App\Domain\Courier\Meest\Command\MeestAITrackingUpdateCommand:
+        arguments:
+            $backgroundUpdateService: '@App\Domain\Courier\Meest\Service\MeestBackgroundUpdateService'
+            $mlPredictionService: '@App\Domain\Courier\Meest\Service\MeestMLPredictionService'
+        tags:
+            - { name: 'console.command' }
