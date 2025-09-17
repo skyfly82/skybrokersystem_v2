@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace App\Command;
 
-use App\Domain\InPost\Service\InPostShipmentService;
-use App\Domain\InPost\DTO\InPostShipmentRequestDTO;
-use App\Domain\InPost\Exception\InPostIntegrationException;
+use App\Courier\InPost\Service\InPostShipmentService;
+use App\Courier\InPost\DTO\InPostShipmentRequestDTO;
+use App\Courier\InPost\Exception\InPostIntegrationException;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;

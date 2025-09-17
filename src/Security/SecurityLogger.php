@@ -95,7 +95,7 @@ class SecurityLogger
         ]);
     }
 
-    public function logSecurityException(\Exception $exception, Request $request): void
+    public function logSecurityException(\Throwable $exception, Request $request): void
     {
         $this->logger->error('Security exception occurred', [
             'event_type' => 'security_exception',

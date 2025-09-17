@@ -1,0 +1,385 @@
+{% extends 'customer/shipment_wizard/base.html.twig' %}
+
+{% block wizard_content %}
+<div class="fade-in" x-data="step3Data()">
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <!-- Main Form -->
+        <div class="lg:col-span-2 space-y-6">
+            <!-- Additional Services -->
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <h2 class="text-xl font-semibold text-gray-900 mb-4">
+                    <i class="fas fa-plus-circle mr-2 text-blue-600"></i>Additional Services
+                </h2>
+
+                <div class="space-y-4">
+                    {% for service in available_services %}
+                    <div class="border rounded-lg p-4 transition-colors"
+                         :class="selectedServices.includes('{{ service.id }}') ? 'border-blue-500 bg-blue-50' : 'border-gray-200'">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center">
+                                <input type="checkbox"
+                                       x-model="selectedServices"
+                                       value="{{ service.id }}"
+                                       @change="updateServiceSelection('{{ service.id }}', $event.target.checked)"
+                                       id="service_{{ service.id }}"
+                                       class="rounded">
+                                <label for="service_{{ service.id }}" class="ml-3 cursor-pointer">
+                                    <div class="font-medium text-gray-900">{{ service.name }}</div>
+                                    <div class="text-sm text-gray-600">{{ service.description }}</div>
+                                </label>
+                            </div>
+                            <div class="text-right">
+                                <div class="font-medium text-gray-900">+{{ service.price_modifier }} {{ service.currency }}</div>
+                                {% if not service.available %}
+                                <div class="text-xs text-red-500">Not Available</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Cash on Delivery -->
+            <div class="bg-white rounded-lg shadow-md p-6" x-show="selectedServices.includes('cod')">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">
+                    <i class="fas fa-money-bill-wave mr-2 text-green-600"></i>Cash on Delivery Details
+                </h3>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="form-group">
+                        <label class="form-label">COD Amount (PLN) *</label>
+                        <input type="number"
+                               x-model="codAmount"
+                               @input="validateField('cod_amount', $event.target.value); updateTotalCost()"
+                               class="form-input"
+                               placeholder="100.00"
+                               step="0.01"
+                               min="0">
+                        <div x-show="errors.cod_amount" class="form-error" x-text="errors.cod_amount"></div>
+                        <div class="text-xs text-gray-500 mt-1">Amount to collect from recipient</div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">COD Reference</label>
+                        <input type="text"
+                               x-model="codReference"
+                               class="form-input"
+                               placeholder="Invoice #123"
+                               maxlength="100">
+                        <div class="text-xs text-gray-500 mt-1">Optional reference for payment</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Insurance -->
+            <div class="bg-white rounded-lg shadow-md p-6" x-show="selectedServices.includes('insurance')">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">
+                    <i class="fas fa-shield-alt mr-2 text-blue-600"></i>Insurance Details
+                </h3>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="form-group">
+                        <label class="form-label">Insurance Amount (PLN) *</label>
+                        <input type="number"
+                               x-model="insuranceAmount"
+                               @input="validateField('insurance_amount', $event.target.value); updateTotalCost()"
+                               class="form-input"
+                               placeholder="500.00"
+                               step="0.01"
+                               min="0">
+                        <div x-show="errors.insurance_amount" class="form-error" x-text="errors.insurance_amount"></div>
+                        <div class="text-xs text-gray-500 mt-1">Value to insure (max 10,000 PLN)</div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Insurance Type</label>
+                        <select x-model="insuranceType" class="form-input">
+                            <option value="standard">Standard Coverage</option>
+                            <option value="extended">Extended Coverage</option>
+                            <option value="full">Full Coverage</option>
+                        </select>
+                        <div class="text-xs text-gray-500 mt-1">Type of insurance coverage</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Delivery Instructions -->
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">
+                    <i class="fas fa-sticky-note mr-2 text-yellow-600"></i>Delivery Instructions
+                </h3>
+
+                <div class="form-group">
+                    <label class="form-label">Special Instructions</label>
+                    <textarea x-model="deliveryInstructions"
+                              @input="validateField('delivery_instructions', $event.target.value)"
+                              class="form-input"
+                              rows="4"
+                              placeholder="Any special delivery instructions for the courier..."
+                              maxlength="500"></textarea>
+                    <div x-show="errors.delivery_instructions" class="form-error" x-text="errors.delivery_instructions"></div>
+                    <div class="text-xs text-gray-500 mt-1">
+                        <span x-text="deliveryInstructions.length"></span>/500 characters
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
+                    <div class="form-group">
+                        <label class="form-label">Preferred Delivery Time</label>
+                        <select x-model="preferredDeliveryTime" class="form-input">
+                            <option value="">No preference</option>
+                            <option value="morning">Morning (8:00-12:00)</option>
+                            <option value="afternoon">Afternoon (12:00-16:00)</option>
+                            <option value="evening">Evening (16:00-20:00)</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Backup Contact Phone</label>
+                        <input type="tel"
+                               x-model="backupPhone"
+                               class="form-input"
+                               placeholder="+48 123 456 789">
+                        <div class="text-xs text-gray-500 mt-1">Alternative contact for delivery</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Service Notifications -->
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">
+                    <i class="fas fa-bell mr-2 text-purple-600"></i>Notification Preferences
+                </h3>
+
+                <div class="space-y-3">
+                    <div class="flex items-center">
+                        <input type="checkbox"
+                               x-model="notifications.sms"
+                               id="sms_notifications"
+                               class="rounded">
+                        <label for="sms_notifications" class="ml-3">
+                            <div class="font-medium">SMS Notifications</div>
+                            <div class="text-sm text-gray-600">Get delivery updates via SMS (+1.00 PLN)</div>
+                        </label>
+                    </div>
+
+                    <div class="flex items-center">
+                        <input type="checkbox"
+                               x-model="notifications.email"
+                               id="email_notifications"
+                               class="rounded">
+                        <label for="email_notifications" class="ml-3">
+                            <div class="font-medium">Email Notifications</div>
+                            <div class="text-sm text-gray-600">Get delivery updates via email (Free)</div>
+                        </label>
+                    </div>
+
+                    <div class="flex items-center">
+                        <input type="checkbox"
+                               x-model="notifications.push"
+                               id="push_notifications"
+                               class="rounded">
+                        <label for="push_notifications" class="ml-3">
+                            <div class="font-medium">Push Notifications</div>
+                            <div class="text-sm text-gray-600">Real-time updates in our app (Free)</div>
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sidebar -->
+        <div class="space-y-6">
+            <!-- Service Summary -->
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">
+                    <i class="fas fa-calculator mr-2 text-blue-600"></i>Services Summary
+                </h3>
+
+                <div class="space-y-3">
+                    <div x-show="selectedServices.length === 0" class="text-gray-500 text-sm">
+                        No additional services selected
+                    </div>
+
+                    <template x-for="serviceId in selectedServices" :key="serviceId">
+                        <div class="flex justify-between">
+                            <span class="text-gray-600" x-text="getServiceName(serviceId)"></span>
+                            <span class="font-medium" x-text="getServicePrice(serviceId) + ' PLN'"></span>
+                        </div>
+                    </template>
+
+                    <div x-show="notifications.sms" class="flex justify-between">
+                        <span class="text-gray-600">SMS Notifications</span>
+                        <span class="font-medium">1.00 PLN</span>
+                    </div>
+
+                    <hr class="my-3">
+
+                    <div class="flex justify-between font-semibold">
+                        <span>Total Additional Services:</span>
+                        <span x-text="totalAdditionalCost.toFixed(2) + ' PLN'"></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Service Recommendations -->
+            <div class="bg-blue-50 rounded-lg p-6">
+                <h3 class="text-lg font-semibold text-blue-900 mb-3">
+                    <i class="fas fa-lightbulb mr-2"></i>Recommendations
+                </h3>
+                <div class="text-sm text-blue-800 space-y-2">
+                    <div x-show="!selectedServices.includes('insurance')" class="p-2 bg-blue-100 rounded">
+                        <strong>Consider Insurance:</strong> Protect valuable items with insurance coverage.
+                    </div>
+                    <div x-show="!notifications.sms && !notifications.email" class="p-2 bg-blue-100 rounded">
+                        <strong>Stay Updated:</strong> Enable notifications to track your shipment.
+                    </div>
+                    <div x-show="codAmount > 1000" class="p-2 bg-yellow-100 rounded text-yellow-800">
+                        <strong>High COD Amount:</strong> Consider insurance for high-value COD shipments.
+                    </div>
+                </div>
+            </div>
+
+            <!-- Service Information -->
+            <div class="bg-gray-50 rounded-lg p-6">
+                <h3 class="text-lg font-semibold text-gray-900 mb-3">
+                    <i class="fas fa-info-circle mr-2"></i>Service Information
+                </h3>
+                <div class="text-sm text-gray-700 space-y-2">
+                    <p><strong>COD:</strong> Payment collected upon delivery. 2.5% processing fee applies.</p>
+                    <p><strong>Insurance:</strong> Covers loss or damage up to declared value.</p>
+                    <p><strong>Priority:</strong> Faster processing and delivery within 24 hours.</p>
+                    <p><strong>Saturday Delivery:</strong> Available in major cities for additional fee.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function step3Data() {
+    return {
+        selectedServices: {{ wizard_data.step3.selected_services ?? '[]'|json_encode|raw }},
+        codAmount: {{ wizard_data.step3.cod_amount ?? 0 }},
+        codReference: '{{ wizard_data.step3.cod_reference ?? "" }}',
+        insuranceAmount: {{ wizard_data.step3.insurance_amount ?? 0 }},
+        insuranceType: '{{ wizard_data.step3.insurance_type ?? "standard" }}',
+        deliveryInstructions: '{{ wizard_data.step3.delivery_instructions ?? "" }}',
+        preferredDeliveryTime: '{{ wizard_data.step3.preferred_delivery_time ?? "" }}',
+        backupPhone: '{{ wizard_data.step3.backup_phone ?? "" }}',
+        notifications: {
+            sms: {{ wizard_data.step3.notifications.sms ?? false|json_encode }},
+            email: {{ wizard_data.step3.notifications.email ?? true|json_encode }},
+            push: {{ wizard_data.step3.notifications.push ?? true|json_encode }}
+        },
+        totalAdditionalCost: 0,
+        errors: {},
+
+        availableServices: {{ available_services|json_encode|raw }},
+
+        updateServiceSelection(serviceId, isSelected) {
+            if (isSelected && !this.selectedServices.includes(serviceId)) {
+                this.selectedServices.push(serviceId);
+            } else if (!isSelected) {
+                const index = this.selectedServices.indexOf(serviceId);
+                if (index > -1) {
+                    this.selectedServices.splice(index, 1);
+                }
+            }
+
+            // Clear related fields when service is deselected
+            if (!isSelected) {
+                if (serviceId === 'cod') {
+                    this.codAmount = 0;
+                    this.codReference = '';
+                }
+                if (serviceId === 'insurance') {
+                    this.insuranceAmount = 0;
+                    this.insuranceType = 'standard';
+                }
+            }
+
+            this.updateTotalCost();
+        },
+
+        updateTotalCost() {
+            let total = 0;
+
+            // Add service costs
+            this.selectedServices.forEach(serviceId => {
+                const service = this.availableServices[serviceId];
+                if (service) {
+                    if (serviceId === 'cod' && this.codAmount > 0) {
+                        // COD fee is percentage of COD amount
+                        total += Math.max(2.5, this.codAmount * 0.025);
+                    } else if (serviceId === 'insurance' && this.insuranceAmount > 0) {
+                        // Insurance fee is percentage of insured amount
+                        total += Math.max(1.5, this.insuranceAmount * 0.003);
+                    } else {
+                        total += parseFloat(service.price_modifier || 0);
+                    }
+                }
+            });
+
+            // Add SMS notification cost
+            if (this.notifications.sms) {
+                total += 1.0;
+            }
+
+            this.totalAdditionalCost = total;
+        },
+
+        getServiceName(serviceId) {
+            const service = this.availableServices[serviceId];
+            return service ? service.name : serviceId;
+        },
+
+        getServicePrice(serviceId) {
+            const service = this.availableServices[serviceId];
+            if (!service) return '0.00';
+
+            if (serviceId === 'cod' && this.codAmount > 0) {
+                return Math.max(2.5, this.codAmount * 0.025).toFixed(2);
+            } else if (serviceId === 'insurance' && this.insuranceAmount > 0) {
+                return Math.max(1.5, this.insuranceAmount * 0.003).toFixed(2);
+            } else {
+                return parseFloat(service.price_modifier || 0).toFixed(2);
+            }
+        },
+
+        collectStepData() {
+            return {
+                selected_services: this.selectedServices,
+                cod_enabled: this.selectedServices.includes('cod'),
+                cod_amount: this.codAmount,
+                cod_reference: this.codReference,
+                insurance_enabled: this.selectedServices.includes('insurance'),
+                insurance_amount: this.insuranceAmount,
+                insurance_type: this.insuranceType,
+                delivery_instructions: this.deliveryInstructions,
+                preferred_delivery_time: this.preferredDeliveryTime,
+                backup_phone: this.backupPhone,
+                notifications: this.notifications,
+                total_additional_cost: this.totalAdditionalCost
+            };
+        },
+
+        validateField(fieldName, value) {
+            if (this.errors[fieldName] && value) {
+                delete this.errors[fieldName];
+            }
+        },
+
+        init() {
+            this.updateTotalCost();
+
+            // Watch for changes
+            this.$watch('notifications', () => this.updateTotalCost(), { deep: true });
+            this.$watch('codAmount', () => this.updateTotalCost());
+            this.$watch('insuranceAmount', () => this.updateTotalCost());
+        }
+    }
+}
+</script>
+{% endblock %}

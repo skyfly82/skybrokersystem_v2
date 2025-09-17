@@ -1,0 +1,392 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Create New Shipment - Step {{ step }} of {{ total_steps }}{% endblock %}
+
+{% block stylesheets %}
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .wizard-step {
+            transition: all 0.3s ease;
+        }
+        .wizard-step.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .wizard-step.completed {
+            background: #10b981;
+            color: white;
+        }
+        .package-card {
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+        .package-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        }
+        .package-card.selected {
+            border-color: #667eea;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .courier-option {
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+        .courier-option:hover {
+            border-color: #667eea;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        .courier-option.selected {
+            border-color: #667eea;
+            background: #f0f4ff;
+        }
+        .progress-bar {
+            transition: width 0.3s ease;
+        }
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+        .form-label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: #374151;
+        }
+        .form-input {
+            width: 100%;
+            padding: 0.75rem;
+            border: 2px solid #e5e7eb;
+            border-radius: 0.5rem;
+            transition: border-color 0.2s ease;
+        }
+        .form-input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        .form-error {
+            color: #ef4444;
+            font-size: 0.875rem;
+            margin-top: 0.25rem;
+        }
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            transition: all 0.2s ease;
+            cursor: pointer;
+            border: none;
+            text-decoration: none;
+            display: inline-block;
+            text-align: center;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+        .btn-secondary {
+            background: #6b7280;
+            color: white;
+        }
+        .btn-secondary:hover {
+            background: #4b5563;
+        }
+        .loading {
+            opacity: 0.7;
+            pointer-events: none;
+        }
+        .spinner {
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #667eea;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+            margin-right: 8px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+{% endblock %}
+
+{% block javascripts %}
+    {{ parent() }}
+    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+{% endblock %}
+
+{% block body %}
+<div class="min-h-screen bg-gray-50" x-data="shipmentWizard()">
+    <!-- Header -->
+    <div class="bg-white shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="py-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h1 class="text-3xl font-bold text-gray-900">Create New Shipment</h1>
+                        <p class="mt-1 text-gray-600">Follow the steps to create your shipment</p>
+                    </div>
+                    <div class="text-right">
+                        <div class="text-sm text-gray-500">Step {{ step }} of {{ total_steps }}</div>
+                        <div class="text-lg font-semibold text-gray-900">
+                            {% if step == 1 %}Package Details
+                            {% elseif step == 2 %}Addresses
+                            {% elseif step == 3 %}Additional Services
+                            {% elseif step == 4 %}Courier & Payment
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Progress Bar -->
+    <div class="bg-white border-b">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="py-4">
+                <div class="flex items-center justify-between">
+                    {% for i in 1..total_steps %}
+                    <div class="flex-1 {% if i < total_steps %}mr-4{% endif %}">
+                        <div class="flex items-center">
+                            <div class="wizard-step flex items-center justify-center w-10 h-10 rounded-full text-sm font-semibold
+                                {% if i < step %}completed
+                                {% elseif i == step %}active
+                                {% else %}bg-gray-200 text-gray-600{% endif %}">
+                                {% if i < step %}
+                                    <i class="fas fa-check"></i>
+                                {% else %}
+                                    {{ i }}
+                                {% endif %}
+                            </div>
+                            {% if i < total_steps %}
+                            <div class="flex-1 h-1 ml-4 bg-gray-200 rounded">
+                                <div class="progress-bar h-full bg-green-500 rounded"
+                                     style="width: {% if i < step %}100{% else %}0{% endif %}%"></div>
+                            </div>
+                            {% endif %}
+                        </div>
+                        <div class="mt-2 text-xs text-gray-600 text-center">
+                            {% if i == 1 %}Package
+                            {% elseif i == 2 %}Addresses
+                            {% elseif i == 3 %}Services
+                            {% elseif i == 4 %}Payment
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {% block wizard_content %}{% endblock %}
+    </div>
+
+    <!-- Navigation -->
+    <div class="bg-white border-t sticky bottom-0">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="py-4 flex items-center justify-between">
+                <div>
+                    {% if step > 1 %}
+                    <a href="{{ path('customer_shipment_wizard_step' ~ (step - 1)) }}"
+                       class="btn btn-secondary">
+                        <i class="fas fa-arrow-left mr-2"></i>Previous Step
+                    </a>
+                    {% endif %}
+                </div>
+                <div class="flex items-center space-x-4">
+                    <a href="{{ path('customer_dashboard') }}"
+                       class="text-gray-600 hover:text-gray-800">Cancel</a>
+                    {% if step < total_steps %}
+                    <button type="button"
+                            @click="nextStep()"
+                            :disabled="loading"
+                            :class="loading ? 'loading' : ''"
+                            class="btn btn-primary">
+                        <span x-show="loading" class="spinner"></span>
+                        Next Step
+                        <i class="fas fa-arrow-right ml-2" x-show="!loading"></i>
+                    </button>
+                    {% else %}
+                    <button type="button"
+                            @click="completeWizard()"
+                            :disabled="loading"
+                            :class="loading ? 'loading' : ''"
+                            class="btn btn-primary">
+                        <span x-show="loading" class="spinner"></span>
+                        Create Shipment
+                        <i class="fas fa-check ml-2" x-show="!loading"></i>
+                    </button>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div x-show="loading"
+         x-transition:enter="transition ease-out duration-300"
+         x-transition:enter-start="opacity-0"
+         x-transition:enter-end="opacity-100"
+         x-transition:leave="transition ease-in duration-200"
+         x-transition:leave-start="opacity-100"
+         x-transition:leave-end="opacity-0"
+         class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div class="bg-white rounded-lg p-6 text-center">
+            <div class="spinner mx-auto mb-4" style="width: 40px; height: 40px;"></div>
+            <p class="text-gray-600" x-text="loadingMessage"></p>
+        </div>
+    </div>
+
+    <!-- Error Modal -->
+    <div x-show="showErrorModal"
+         x-transition:enter="transition ease-out duration-300"
+         x-transition:enter-start="opacity-0"
+         x-transition:enter-end="opacity-100"
+         x-transition:leave="transition ease-in duration-200"
+         x-transition:leave-start="opacity-100"
+         x-transition:leave-end="opacity-0"
+         class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div class="bg-white rounded-lg p-6 max-w-md mx-4">
+            <div class="flex items-center mb-4">
+                <div class="flex-shrink-0">
+                    <i class="fas fa-exclamation-triangle text-red-500 text-2xl"></i>
+                </div>
+                <div class="ml-3">
+                    <h3 class="text-lg font-medium text-gray-900">Error</h3>
+                </div>
+            </div>
+            <div class="mb-4">
+                <p class="text-gray-600" x-text="errorMessage"></p>
+            </div>
+            <div class="flex justify-end">
+                <button @click="showErrorModal = false" class="btn btn-secondary">
+                    Close
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function shipmentWizard() {
+    return {
+        loading: false,
+        loadingMessage: 'Processing...',
+        showErrorModal: false,
+        errorMessage: '',
+        formData: {},
+        errors: {},
+
+        init() {
+            // Initialize form data from existing wizard data if available
+            {% if wizard_data is defined and wizard_data %}
+            this.formData = {{ wizard_data|json_encode|raw }};
+            {% endif %}
+        },
+
+        async nextStep() {
+            this.loading = true;
+            this.loadingMessage = 'Validating form data...';
+            this.errors = {};
+
+            try {
+                const stepData = this.collectStepData();
+                const response = await fetch(window.location.href, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    body: JSON.stringify(stepData)
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    window.location.href = `{{ path('customer_shipment_wizard_step1')|replace({'1': ''}) }}${result.next_step}`;
+                } else {
+                    this.errors = result.errors || {};
+                    this.showErrors();
+                }
+            } catch (error) {
+                this.showError('Network error. Please try again.');
+            } finally {
+                this.loading = false;
+            }
+        },
+
+        async completeWizard() {
+            this.loading = true;
+            this.loadingMessage = 'Creating shipment...';
+
+            try {
+                const stepData = this.collectStepData();
+                const response = await fetch(window.location.href, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    body: JSON.stringify(stepData)
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    window.location.href = result.redirect_url;
+                } else {
+                    this.showError(result.message || 'Failed to create shipment');
+                }
+            } catch (error) {
+                this.showError('Network error. Please try again.');
+            } finally {
+                this.loading = false;
+            }
+        },
+
+        collectStepData() {
+            // This will be overridden in each step template
+            return {};
+        },
+
+        showError(message) {
+            this.errorMessage = message;
+            this.showErrorModal = true;
+        },
+
+        showErrors() {
+            if (Object.keys(this.errors).length > 0) {
+                const firstError = Object.values(this.errors)[0];
+                this.showError(firstError);
+            }
+        },
+
+        validateField(fieldName, value) {
+            // Remove error when field is corrected
+            if (this.errors[fieldName] && value) {
+                delete this.errors[fieldName];
+            }
+        }
+    }
+}
+</script>
+{% endblock %}

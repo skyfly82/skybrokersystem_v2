@@ -1,0 +1,245 @@
+# Customer API Routes Configuration
+# RESTful API routes for customer dashboard and shipment management
+
+# Customer Dashboard Routes
+customer_dashboard:
+    resource: App\Controller\Api\Customer\DashboardController
+    type: attribute
+    prefix: /api/v1/customer/dashboard
+
+# Customer Shipment Management Routes
+customer_shipments:
+    resource: App\Controller\Api\Customer\ShipmentController
+    type: attribute
+    prefix: /api/v1/customer/shipments
+
+# Customer Address Book Routes
+customer_addresses:
+    resource: App\Controller\Api\Customer\AddressBookController
+    type: attribute
+    prefix: /api/v1/customer/addresses
+
+# Customer Payment and Balance Routes
+customer_payments:
+    resource: App\Controller\Api\Customer\PaymentController
+    type: attribute
+    prefix: /api/v1/customer/payments
+
+# Additional Customer API Routes
+
+# Pricing Calculator Routes
+api_pricing_calculator:
+    path: /api/v1/pricing/calculate
+    controller: App\Controller\Api\PricingController::calculate
+    methods: [POST]
+
+api_pricing_bulk:
+    path: /api/v1/pricing/bulk
+    controller: App\Controller\Api\PricingController::calculateBulk
+    methods: [POST]
+
+api_pricing_compare:
+    path: /api/v1/pricing/compare
+    controller: App\Controller\Api\PricingController::compare
+    methods: [POST]
+
+api_pricing_best:
+    path: /api/v1/pricing/best
+    controller: App\Controller\Api\PricingController::getBestPrice
+    methods: [POST]
+
+# Address Validation Routes
+api_address_validate:
+    path: /api/v1/addresses/validate
+    controller: App\Controller\Api\AddressController::validate
+    methods: [POST]
+
+api_address_suggest:
+    path: /api/v1/addresses/suggest
+    controller: App\Controller\Api\AddressController::suggest
+    methods: [POST]
+
+api_address_geocode:
+    path: /api/v1/addresses/geocode
+    controller: App\Controller\Api\AddressController::geocode
+    methods: [POST]
+
+# Courier Service Routes
+api_couriers_available:
+    path: /api/v1/couriers/available
+    controller: App\Controller\Api\CourierController::getAvailable
+    methods: [GET]
+
+api_couriers_services:
+    path: /api/v1/couriers/{code}/services
+    controller: App\Controller\Api\CourierController::getServices
+    methods: [GET]
+
+api_couriers_pickup_points:
+    path: /api/v1/couriers/{code}/pickup-points
+    controller: App\Controller\Api\CourierController::getPickupPoints
+    methods: [GET]
+
+# Real-time Tracking Routes
+api_shipments_track:
+    path: /api/v1/shipments/track/{trackingNumber}
+    controller: App\Controller\Api\TrackingController::track
+    methods: [GET]
+
+api_shipments_track_batch:
+    path: /api/v1/shipments/track/batch
+    controller: App\Controller\Api\TrackingController::trackBatch
+    methods: [POST]
+
+api_shipments_tracking_events:
+    path: /api/v1/shipments/{id}/tracking/events
+    controller: App\Controller\Api\TrackingController::getEvents
+    methods: [GET]
+
+# Shipment Label Routes
+api_shipments_labels_single:
+    path: /api/v1/shipments/{id}/label
+    controller: App\Controller\Api\LabelController::getSingle
+    methods: [GET]
+
+api_shipments_labels_batch:
+    path: /api/v1/shipments/labels/batch
+    controller: App\Controller\Api\LabelController::getBatch
+    methods: [POST]
+
+# Order Management Routes
+api_orders_list:
+    path: /api/v1/orders
+    controller: App\Controller\Api\OrderController::list
+    methods: [GET]
+
+api_orders_create:
+    path: /api/v1/orders
+    controller: App\Controller\Api\OrderController::create
+    methods: [POST]
+
+api_orders_show:
+    path: /api/v1/orders/{id}
+    controller: App\Controller\Api\OrderController::show
+    methods: [GET]
+
+api_orders_update:
+    path: /api/v1/orders/{id}
+    controller: App\Controller\Api\OrderController::update
+    methods: [PUT]
+
+api_orders_cancel:
+    path: /api/v1/orders/{id}/cancel
+    controller: App\Controller\Api\OrderController::cancel
+    methods: [POST]
+
+# Invoice Management Routes
+api_invoices_list:
+    path: /api/v1/invoices
+    controller: App\Controller\Api\InvoiceController::list
+    methods: [GET]
+
+api_invoices_show:
+    path: /api/v1/invoices/{id}
+    controller: App\Controller\Api\InvoiceController::show
+    methods: [GET]
+
+api_invoices_download:
+    path: /api/v1/invoices/{id}/download
+    controller: App\Controller\Api\InvoiceController::download
+    methods: [GET]
+
+api_invoices_pay:
+    path: /api/v1/invoices/{id}/pay
+    controller: App\Controller\Api\InvoiceController::pay
+    methods: [POST]
+
+# Notification Management Routes
+api_notifications_list:
+    path: /api/v1/notifications
+    controller: App\Controller\Api\NotificationController::list
+    methods: [GET]
+
+api_notifications_mark_read:
+    path: /api/v1/notifications/{id}/read
+    controller: App\Controller\Api\NotificationController::markRead
+    methods: [POST]
+
+api_notifications_mark_all_read:
+    path: /api/v1/notifications/read-all
+    controller: App\Controller\Api\NotificationController::markAllRead
+    methods: [POST]
+
+api_notifications_preferences:
+    path: /api/v1/notifications/preferences
+    controller: App\Controller\Api\NotificationController::getPreferences
+    methods: [GET]
+
+api_notifications_update_preferences:
+    path: /api/v1/notifications/preferences
+    controller: App\Controller\Api\NotificationController::updatePreferences
+    methods: [PUT]
+
+# File Upload Routes
+api_files_upload:
+    path: /api/v1/files/upload
+    controller: App\Controller\Api\FileController::upload
+    methods: [POST]
+
+api_files_download:
+    path: /api/v1/files/{id}/download
+    controller: App\Controller\Api\FileController::download
+    methods: [GET]
+
+# Reports and Analytics Routes
+api_reports_shipments:
+    path: /api/v1/reports/shipments
+    controller: App\Controller\Api\ReportController::shipments
+    methods: [GET]
+
+api_reports_financial:
+    path: /api/v1/reports/financial
+    controller: App\Controller\Api\ReportController::financial
+    methods: [GET]
+
+api_reports_export:
+    path: /api/v1/reports/export
+    controller: App\Controller\Api\ReportController::export
+    methods: [POST]
+
+# Customer Profile Management Routes
+api_profile_show:
+    path: /api/v1/profile
+    controller: App\Controller\Api\ProfileController::show
+    methods: [GET]
+
+api_profile_update:
+    path: /api/v1/profile
+    controller: App\Controller\Api\ProfileController::update
+    methods: [PUT]
+
+api_profile_change_password:
+    path: /api/v1/profile/password
+    controller: App\Controller\Api\ProfileController::changePassword
+    methods: [PUT]
+
+api_profile_two_factor:
+    path: /api/v1/profile/two-factor
+    controller: App\Controller\Api\ProfileController::twoFactor
+    methods: [POST, PUT, DELETE]
+
+# API Health and Status Routes
+api_health_check:
+    path: /api/v1/health
+    controller: App\Controller\Api\HealthController::check
+    methods: [GET]
+
+api_status:
+    path: /api/v1/status
+    controller: App\Controller\Api\StatusController::status
+    methods: [GET]
+
+api_version:
+    path: /api/v1/version
+    controller: App\Controller\Api\VersionController::version
+    methods: [GET]

@@ -1,0 +1,226 @@
+{% extends 'customer/shipment_wizard/base.html.twig' %}
+
+{% block wizard_content %}
+<div class="fade-in">
+    <div class="max-w-4xl mx-auto">
+        <!-- Welcome Section -->
+        <div class="bg-white rounded-xl shadow-lg overflow-hidden mb-8">
+            <div class="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-8">
+                <div class="text-center">
+                    <h1 class="text-3xl font-bold mb-4">Create New Shipment</h1>
+                    <p class="text-xl text-blue-100">Simple 4-step process to send your package</p>
+                </div>
+            </div>
+
+            <div class="p-8">
+                <!-- Process Overview -->
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+                    <div class="text-center">
+                        <div class="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                            <i class="fas fa-box text-2xl text-blue-600"></i>
+                        </div>
+                        <h3 class="font-semibold text-gray-900 mb-2">1. Package Details</h3>
+                        <p class="text-sm text-gray-600">Choose package type, weight, and dimensions</p>
+                    </div>
+
+                    <div class="text-center">
+                        <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                            <i class="fas fa-map-marker-alt text-2xl text-green-600"></i>
+                        </div>
+                        <h3 class="font-semibold text-gray-900 mb-2">2. Addresses</h3>
+                        <p class="text-sm text-gray-600">Enter sender and recipient information</p>
+                    </div>
+
+                    <div class="text-center">
+                        <div class="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                            <i class="fas fa-plus-circle text-2xl text-yellow-600"></i>
+                        </div>
+                        <h3 class="font-semibold text-gray-900 mb-2">3. Services</h3>
+                        <p class="text-sm text-gray-600">Select additional services and options</p>
+                    </div>
+
+                    <div class="text-center">
+                        <div class="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                            <i class="fas fa-credit-card text-2xl text-purple-600"></i>
+                        </div>
+                        <h3 class="font-semibold text-gray-900 mb-2">4. Payment</h3>
+                        <p class="text-sm text-gray-600">Choose courier and complete payment</p>
+                    </div>
+                </div>
+
+                <!-- Features -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                    <div class="text-center p-6 bg-gray-50 rounded-lg">
+                        <i class="fas fa-clock text-3xl text-blue-600 mb-3"></i>
+                        <h4 class="font-semibold text-gray-900 mb-2">Fast & Easy</h4>
+                        <p class="text-sm text-gray-600">Create shipments in under 5 minutes with our guided wizard</p>
+                    </div>
+
+                    <div class="text-center p-6 bg-gray-50 rounded-lg">
+                        <i class="fas fa-shield-alt text-3xl text-green-600 mb-3"></i>
+                        <h4 class="font-semibold text-gray-900 mb-2">Secure & Reliable</h4>
+                        <p class="text-sm text-gray-600">Your packages are protected with insurance and tracking</p>
+                    </div>
+
+                    <div class="text-center p-6 bg-gray-50 rounded-lg">
+                        <i class="fas fa-dollar-sign text-3xl text-purple-600 mb-3"></i>
+                        <h4 class="font-semibold text-gray-900 mb-2">Best Prices</h4>
+                        <p class="text-sm text-gray-600">Compare rates from multiple couriers to find the best deal</p>
+                    </div>
+                </div>
+
+                <!-- Quick Actions -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Start Wizard -->
+                    <div class="border-2 border-blue-200 rounded-lg p-6 hover:border-blue-400 transition-colors">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-lg font-semibold text-gray-900">Create New Shipment</h3>
+                            <i class="fas fa-arrow-right text-blue-600"></i>
+                        </div>
+                        <p class="text-gray-600 mb-4">Start the guided wizard to create a new shipment from scratch</p>
+                        <a href="{{ path('customer_shipment_wizard_step1') }}"
+                           class="w-full btn btn-primary text-center">
+                            <i class="fas fa-plus mr-2"></i>Start Wizard
+                        </a>
+                    </div>
+
+                    <!-- Quick Template -->
+                    <div class="border-2 border-gray-200 rounded-lg p-6 hover:border-gray-400 transition-colors">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-lg font-semibold text-gray-900">Use Template</h3>
+                            <i class="fas fa-history text-gray-600"></i>
+                        </div>
+                        <p class="text-gray-600 mb-4">Create shipment based on your previous orders</p>
+                        <button type="button"
+                                class="w-full btn btn-secondary text-center"
+                                onclick="showTemplates()">
+                            <i class="fas fa-copy mr-2"></i>Browse Templates
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Activity -->
+        <div class="bg-white rounded-xl shadow-lg p-6">
+            <h2 class="text-xl font-semibold text-gray-900 mb-4">
+                <i class="fas fa-chart-line mr-2 text-blue-600"></i>Recent Activity
+            </h2>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <!-- This Month Stats -->
+                <div class="text-center p-4 bg-blue-50 rounded-lg">
+                    <div class="text-2xl font-bold text-blue-600 mb-1">12</div>
+                    <div class="text-sm text-blue-800">Shipments This Month</div>
+                </div>
+
+                <div class="text-center p-4 bg-green-50 rounded-lg">
+                    <div class="text-2xl font-bold text-green-600 mb-1">€234.50</div>
+                    <div class="text-sm text-green-800">Total Spent</div>
+                </div>
+
+                <div class="text-center p-4 bg-purple-50 rounded-lg">
+                    <div class="text-2xl font-bold text-purple-600 mb-1">98%</div>
+                    <div class="text-sm text-purple-800">Delivery Success Rate</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Help Section -->
+        <div class="mt-8 bg-gray-50 rounded-xl p-6">
+            <h2 class="text-lg font-semibold text-gray-900 mb-4">
+                <i class="fas fa-question-circle mr-2 text-blue-600"></i>Need Help Getting Started?
+            </h2>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <h3 class="font-medium text-gray-900 mb-2">First Time Shipping?</h3>
+                    <p class="text-sm text-gray-600 mb-3">
+                        Watch our quick tutorial to learn how to create your first shipment efficiently.
+                    </p>
+                    <a href="#" class="text-blue-600 hover:underline text-sm">
+                        <i class="fas fa-play mr-1"></i>Watch Tutorial
+                    </a>
+                </div>
+
+                <div>
+                    <h3 class="font-medium text-gray-900 mb-2">Shipping Guidelines</h3>
+                    <p class="text-sm text-gray-600 mb-3">
+                        Learn about packaging requirements, prohibited items, and shipping best practices.
+                    </p>
+                    <a href="#" class="text-blue-600 hover:underline text-sm">
+                        <i class="fas fa-book mr-1"></i>Read Guidelines
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Templates Modal -->
+<div id="templatesModal"
+     class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+    <div class="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-96 overflow-y-auto">
+        <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-semibold">Choose Template</h3>
+            <button onclick="hideTemplates()" class="text-gray-400 hover:text-gray-600">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+
+        <div class="space-y-3">
+            <div class="border rounded-lg p-3 cursor-pointer hover:bg-gray-50">
+                <div class="font-medium">Warsaw → Krakow (InPost)</div>
+                <div class="text-sm text-gray-600">2.5kg • Medium Package • Last used 3 days ago</div>
+            </div>
+
+            <div class="border rounded-lg p-3 cursor-pointer hover:bg-gray-50">
+                <div class="font-medium">Gdansk → Berlin (DHL)</div>
+                <div class="text-sm text-gray-600">1.2kg • Small Package • Last used 1 week ago</div>
+            </div>
+
+            <div class="border rounded-lg p-3 cursor-pointer hover:bg-gray-50">
+                <div class="font-medium">Poznan → Prague (InPost)</div>
+                <div class="text-sm text-gray-600">0.8kg • Envelope • Last used 2 weeks ago</div>
+            </div>
+        </div>
+
+        <div class="mt-4 text-center">
+            <p class="text-sm text-gray-500">
+                Templates are based on your recent shipments
+            </p>
+        </div>
+    </div>
+</div>
+
+<script>
+function showTemplates() {
+    document.getElementById('templatesModal').classList.remove('hidden');
+}
+
+function hideTemplates() {
+    document.getElementById('templatesModal').classList.add('hidden');
+}
+
+// Close modal when clicking outside
+document.getElementById('templatesModal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        hideTemplates();
+    }
+});
+
+// Keyboard navigation
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        hideTemplates();
+    }
+});
+
+// Auto-start wizard if user has been on page for 30 seconds
+setTimeout(() => {
+    if (confirm('Would you like to start creating a shipment now?')) {
+        window.location.href = '{{ path("customer_shipment_wizard_step1") }}';
+    }
+}, 30000);
+</script>
+{% endblock %}

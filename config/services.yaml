@@ -74,13 +74,13 @@ services:
             - { name: 'monolog.logger', channel: 'secrets' }
 
     # InPost Services
-    App\Domain\InPost\Service\InPostService:
+    App\Courier\InPost\Service\InPostService:
         arguments:
             $environment: 'sandbox'
         tags:
             - { name: 'courier.service', alias: 'inpost' }
-            
-    App\Domain\InPost\Service\InPostShipmentService:
+
+    App\Courier\InPost\Service\InPostShipmentService:
         arguments:
             - '@App\Service\InPostApiClient'
             - '@App\Repository\ShipmentRepository'
@@ -234,3 +234,8 @@ services:
             - '@monolog.logger'
         tags:
             - { name: 'monolog.logger', channel: 'pricing' }
+
+    # Courier Service Registry
+    App\Service\CourierServiceRegistry:
+        arguments:
+            $clients: !tagged_iterator { tag: 'courier.service' }

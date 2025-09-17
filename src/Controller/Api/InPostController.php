@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace App\Controller\Api;
 
-use App\Domain\InPost\Service\InPostShipmentService;
-use App\Domain\InPost\DTO\InPostShipmentRequestDTO;
-use App\Domain\InPost\Exception\InPostIntegrationException;
+use App\Courier\InPost\Service\InPostShipmentService;
+use App\Courier\InPost\DTO\InPostShipmentRequestDTO;
+use App\Courier\InPost\Exception\InPostIntegrationException;
 use App\Service\CourierSecretsService;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;

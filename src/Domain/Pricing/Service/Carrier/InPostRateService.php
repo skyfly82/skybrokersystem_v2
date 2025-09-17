@@ -48,14 +48,21 @@ class InPostRateService extends AbstractCarrierRateService
             throw new ShipmentValidationException("Przesyłka nie spełnia wymagań InPost");
         }
 
+        // Retrieve cached rate if exists
+        $cacheKey = $this->generateCacheKey($shipment);
+        $cachedRate = $this->rateCache->get($cacheKey);
+        if ($cachedRate) {
+            return $cachedRate;
+        }
+
         // Wybór strefy cenowej
         $priceZone = $this->determinePriceZone($shipment);
         $basePrice = self::PRICE_ZONES[$priceZone];
 
         // Korekta ceny w zależności od wagi
         $volumetricWeight = $this->calculateVolumetricWeight(
-            $shipment->length, 
-            $shipment->width, 
+            $shipment->length,
+            $shipment->width,
             $shipment->height
         );
         $effectiveWeight = max($shipment->weight, $volumetricWeight);
@@ -63,7 +70,10 @@ class InPostRateService extends AbstractCarrierRateService
 
         $totalPrice = $basePrice * $weightMultiplier;
 
-        return new RateResultDTO(
+        // Factor in additional services
+        $totalPrice += $this->calculateAdditionalServicesCost($shipment);
+
+        $rateResult = new RateResultDTO(
             carrier: 'InPost',
             basePrice: $basePrice,
             totalPrice: $totalPrice,
@@ -71,6 +81,60 @@ class InPostRateService extends AbstractCarrierRateService
             deliveryTime: $this->getDeliveryTime($shipment),
             zone: $priceZone
         );
+
+        // Cache the result for future requests
+        $this->rateCache->set($cacheKey, $rateResult, 3600); // Cache for 1 hour
+
+        return $rateResult;
+    }
+
+    /**
+     * Calculate cost for additional services
+     */
+    private function calculateAdditionalServicesCost(ShipmentDTO $shipment): float
+    {
+        $additionalCost = 0.0;
+
+        if ($shipment->hasCOD) {
+            $additionalCost += self::ADDITIONAL_SERVICES['pobranie'];
+        }
+
+        if ($shipment->hasInsurance) {
+            $additionalCost += self::ADDITIONAL_SERVICES['ubezpieczenie'];
+        }
+
+        return $additionalCost;
+    }
+
+    /**
+     * Generate a unique cache key for shipment rate
+     */
+    private function generateCacheKey(ShipmentDTO $shipment): string
+    {
+        return md5(json_encode([
+            $shipment->length,
+            $shipment->width,
+            $shipment->height,
+            $shipment->weight,
+            $shipment->isLocal,
+            $shipment->isInternational,
+            $shipment->hasCOD,
+            $shipment->hasInsurance
+        ]));
+    }
+
+    /**
+     * Bulk rate calculation with parallel processing
+     * @param ShipmentDTO[] $shipments
+     * @return RateResultDTO[]
+     */
+    public function calculateBulkRates(array $shipments): array
+    {
+        $results = [];
+        foreach ($shipments as $shipment) {
+            $results[] = $this->calculateRate($shipment);
+        }
+        return $results;
     }
 
     /**

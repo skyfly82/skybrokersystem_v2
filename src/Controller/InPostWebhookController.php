@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Controller;
 
-use App\Domain\InPost\Service\InPostWorkflowService;
+use App\Courier\InPost\Service\InPostWorkflowService;
 use App\Repository\ShipmentRepository;
 use App\Service\CourierSecretsService;
 use Psr\Log\LoggerInterface;

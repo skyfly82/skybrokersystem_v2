@@ -1,0 +1,333 @@
+{% extends 'customer/shipment_wizard/base.html.twig' %}
+
+{% block wizard_content %}
+<div class="fade-in" x-data="step1Data()">
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <!-- Main Form -->
+        <div class="lg:col-span-2">
+            <!-- Package Type Selection -->
+            <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+                <h2 class="text-xl font-semibold text-gray-900 mb-4">
+                    <i class="fas fa-box mr-2 text-blue-600"></i>Choose Package Type
+                </h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {% for package in package_types %}
+                    <div class="package-card border-2 border-gray-200 rounded-lg p-4"
+                         :class="selectedPackageType === '{{ package.id }}' ? 'selected' : ''"
+                         @click="selectPackageType('{{ package.id }}')">
+                        <div class="flex items-center justify-between mb-2">
+                            <div class="flex items-center">
+                                <i class="fas fa-{{ package.icon }} text-2xl mr-3"></i>
+                                <h3 class="font-semibold">{{ package.name }}</h3>
+                            </div>
+                            <div class="text-xs text-gray-500">
+                                Max {{ package.max_weight_kg }}kg
+                            </div>
+                        </div>
+                        <p class="text-sm text-gray-600 mb-3">{{ package.description }}</p>
+                        <div class="text-xs text-gray-500">
+                            <strong>Examples:</strong> {{ package.example_items|join(', ') }}
+                        </div>
+                        <div class="text-xs text-gray-500 mt-1">
+                            <strong>Max size:</strong>
+                            {{ package.max_dimensions.length }}×{{ package.max_dimensions.width }}×{{ package.max_dimensions.height }}cm
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                <div x-show="errors.package_type" class="form-error mt-2" x-text="errors.package_type"></div>
+            </div>
+
+            <!-- Package Details -->
+            <div class="bg-white rounded-lg shadow-md p-6 mb-6" x-show="selectedPackageType">
+                <h2 class="text-xl font-semibold text-gray-900 mb-4">
+                    <i class="fas fa-weight-hanging mr-2 text-blue-600"></i>Package Details
+                </h2>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Weight -->
+                    <div class="form-group">
+                        <label class="form-label">Weight (kg) *</label>
+                        <input type="number"
+                               x-model="weight"
+                               @input="validateField('weight_kg', $event.target.value)"
+                               class="form-input"
+                               placeholder="0.5"
+                               step="0.1"
+                               min="0.1"
+                               max="50">
+                        <div x-show="errors.weight_kg" class="form-error" x-text="errors.weight_kg"></div>
+                    </div>
+
+                    <!-- Total Value -->
+                    <div class="form-group">
+                        <label class="form-label">Total Value (PLN)</label>
+                        <input type="number"
+                               x-model="totalValue"
+                               class="form-input"
+                               placeholder="100.00"
+                               step="0.01"
+                               min="0">
+                        <div class="text-xs text-gray-500 mt-1">For insurance and customs purposes</div>
+                    </div>
+                </div>
+
+                <!-- Custom Dimensions (shown only for custom package type) -->
+                <div x-show="selectedPackageType === 'custom'" class="mt-6">
+                    <h3 class="font-semibold text-gray-900 mb-3">Custom Dimensions (cm)</h3>
+                    <div class="grid grid-cols-3 gap-4">
+                        <div class="form-group">
+                            <label class="form-label">Length *</label>
+                            <input type="number"
+                                   x-model="dimensions.length"
+                                   @input="validateField('dimensions.length', $event.target.value)"
+                                   class="form-input"
+                                   placeholder="30"
+                                   min="1"
+                                   max="100">
+                            <div x-show="errors['dimensions.length']" class="form-error" x-text="errors['dimensions.length']"></div>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Width *</label>
+                            <input type="number"
+                                   x-model="dimensions.width"
+                                   @input="validateField('dimensions.width', $event.target.value)"
+                                   class="form-input"
+                                   placeholder="20"
+                                   min="1"
+                                   max="60">
+                            <div x-show="errors['dimensions.width']" class="form-error" x-text="errors['dimensions.width']"></div>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Height *</label>
+                            <input type="number"
+                                   x-model="dimensions.height"
+                                   @input="validateField('dimensions.height', $event.target.value)"
+                                   class="form-input"
+                                   placeholder="10"
+                                   min="1"
+                                   max="50">
+                            <div x-show="errors['dimensions.height']" class="form-error" x-text="errors['dimensions.height']"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Items List -->
+            <div class="bg-white rounded-lg shadow-md p-6" x-show="selectedPackageType">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-xl font-semibold text-gray-900">
+                        <i class="fas fa-list mr-2 text-blue-600"></i>Items in Package
+                    </h2>
+                    <button type="button"
+                            @click="addItem()"
+                            class="btn btn-primary text-sm py-2 px-3">
+                        <i class="fas fa-plus mr-1"></i>Add Item
+                    </button>
+                </div>
+
+                <div class="space-y-4">
+                    <template x-for="(item, index) in items" :key="index">
+                        <div class="border rounded-lg p-4 bg-gray-50">
+                            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                                <div class="md:col-span-2">
+                                    <label class="form-label">Item Name *</label>
+                                    <input type="text"
+                                           x-model="item.name"
+                                           @input="validateField(`items.${index}.name`, $event.target.value)"
+                                           class="form-input"
+                                           placeholder="Item description">
+                                    <div x-show="errors[`items.${index}.name`]" class="form-error" x-text="errors[`items.${index}.name`]"></div>
+                                </div>
+                                <div>
+                                    <label class="form-label">Quantity *</label>
+                                    <input type="number"
+                                           x-model="item.quantity"
+                                           @input="validateField(`items.${index}.quantity`, $event.target.value); updateTotalValue()"
+                                           class="form-input"
+                                           placeholder="1"
+                                           min="1">
+                                    <div x-show="errors[`items.${index}.quantity`]" class="form-error" x-text="errors[`items.${index}.quantity`]"></div>
+                                </div>
+                                <div>
+                                    <label class="form-label">Value (PLN) *</label>
+                                    <div class="flex">
+                                        <input type="number"
+                                               x-model="item.value"
+                                               @input="validateField(`items.${index}.value`, $event.target.value); updateTotalValue()"
+                                               class="form-input"
+                                               placeholder="50.00"
+                                               step="0.01"
+                                               min="0">
+                                        <button type="button"
+                                                @click="removeItem(index)"
+                                                class="ml-2 px-3 py-2 bg-red-500 text-white rounded hover:bg-red-600"
+                                                x-show="items.length > 1">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                    <div x-show="errors[`items.${index}.value`]" class="form-error" x-text="errors[`items.${index}.value`]"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+                <div x-show="errors.items" class="form-error mt-2" x-text="errors.items"></div>
+            </div>
+        </div>
+
+        <!-- Sidebar -->
+        <div class="space-y-6">
+            <!-- Quick Templates -->
+            {% if recent_shipments is not empty %}
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">
+                    <i class="fas fa-history mr-2 text-blue-600"></i>Recent Templates
+                </h3>
+                <div class="space-y-3">
+                    {% for shipment in recent_shipments %}
+                    <div class="border rounded-lg p-3 cursor-pointer hover:bg-gray-50 transition-colors"
+                         @click="loadTemplate({{ shipment|json_encode }})">
+                        <div class="font-medium text-sm">{{ shipment.template_name }}</div>
+                        <div class="text-xs text-gray-500 mt-1">
+                            {{ shipment.weight_kg }}kg • {{ shipment.package_type|title }}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Package Summary -->
+            <div class="bg-white rounded-lg shadow-md p-6" x-show="selectedPackageType">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">
+                    <i class="fas fa-info-circle mr-2 text-blue-600"></i>Package Summary
+                </h3>
+                <div class="space-y-3">
+                    <div class="flex justify-between">
+                        <span class="text-gray-600">Type:</span>
+                        <span class="font-medium" x-text="getPackageTypeName()"></span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-600">Weight:</span>
+                        <span class="font-medium" x-text="weight + ' kg'"></span>
+                    </div>
+                    <div class="flex justify-between" x-show="selectedPackageType === 'custom'">
+                        <span class="text-gray-600">Dimensions:</span>
+                        <span class="font-medium" x-text="`${dimensions.length}×${dimensions.width}×${dimensions.height} cm`"></span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-600">Total Value:</span>
+                        <span class="font-medium" x-text="totalValue + ' PLN'"></span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-600">Items:</span>
+                        <span class="font-medium" x-text="items.length + ' item(s)'"></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Help -->
+            <div class="bg-blue-50 rounded-lg p-6">
+                <h3 class="text-lg font-semibold text-blue-900 mb-3">
+                    <i class="fas fa-question-circle mr-2"></i>Need Help?
+                </h3>
+                <div class="text-sm text-blue-800 space-y-2">
+                    <p><strong>Package Types:</strong> Choose the type that best matches your item size and weight.</p>
+                    <p><strong>Custom Dimensions:</strong> Use this for irregular or large items.</p>
+                    <p><strong>Item Value:</strong> Accurate values help with insurance and customs.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function step1Data() {
+    return {
+        selectedPackageType: '{{ wizard_data.step1.package_type ?? "" }}',
+        weight: {{ wizard_data.step1.weight_kg ?? 0.5 }},
+        totalValue: {{ wizard_data.step1.total_value ?? 0 }},
+        dimensions: {
+            length: {{ wizard_data.step1.dimensions.length ?? 30 }},
+            width: {{ wizard_data.step1.dimensions.width ?? 20 }},
+            height: {{ wizard_data.step1.dimensions.height ?? 10 }}
+        },
+        items: {{ wizard_data.step1.items ?? '[{"name":"","quantity":1,"value":0}]'|json_encode|raw }},
+        errors: {},
+
+        packageTypes: {{ package_types|json_encode|raw }},
+
+        selectPackageType(type) {
+            this.selectedPackageType = type;
+            this.validateField('package_type', type);
+
+            // Set default dimensions based on package type
+            if (type !== 'custom') {
+                const packageType = this.packageTypes.find(p => p.id === type);
+                if (packageType) {
+                    this.dimensions = packageType.max_dimensions;
+                    this.weight = Math.min(this.weight, packageType.max_weight_kg);
+                }
+            }
+        },
+
+        addItem() {
+            this.items.push({
+                name: '',
+                quantity: 1,
+                value: 0
+            });
+        },
+
+        removeItem(index) {
+            if (this.items.length > 1) {
+                this.items.splice(index, 1);
+                this.updateTotalValue();
+            }
+        },
+
+        updateTotalValue() {
+            let total = 0;
+            this.items.forEach(item => {
+                total += (parseFloat(item.value) || 0) * (parseInt(item.quantity) || 0);
+            });
+            this.totalValue = total.toFixed(2);
+        },
+
+        getPackageTypeName() {
+            const packageType = this.packageTypes.find(p => p.id === this.selectedPackageType);
+            return packageType ? packageType.name : '';
+        },
+
+        loadTemplate(template) {
+            this.selectedPackageType = template.package_type;
+            this.weight = template.weight_kg;
+            this.dimensions = template.dimensions;
+            this.items = template.items || [{ name: '', quantity: 1, value: 0 }];
+            this.updateTotalValue();
+        },
+
+        collectStepData() {
+            return {
+                package_type: this.selectedPackageType,
+                weight_kg: parseFloat(this.weight),
+                dimensions: this.selectedPackageType === 'custom' ? this.dimensions : null,
+                items: this.items.map(item => ({
+                    name: item.name,
+                    quantity: parseInt(item.quantity),
+                    value: parseFloat(item.value)
+                })),
+                total_value: parseFloat(this.totalValue)
+            };
+        },
+
+        validateField(fieldName, value) {
+            if (this.errors[fieldName] && value) {
+                delete this.errors[fieldName];
+            }
+        }
+    }
+}
+</script>
+{% endblock %}
